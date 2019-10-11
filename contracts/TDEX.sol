@@ -71,9 +71,7 @@ contract TDEX is PermissionGroups {
     function addSellTokenOrder(uint _amount, uint _price) public returns (uint) {
         _price = _price.div(10**orderDecimals);
         require(minSellPrice == 0 || _price < minSellPrice + maxPriceRange );
-        // make sure got tokens 
-       
-        require(MyToken.transferFrom(msg.sender, this, _amount)); // Token amount
+        MyToken.transferFrom(msg.sender, this, _amount);
         // orderID auto increase
         orderID += 1;
         allSellOrder[orderID] = Order({
