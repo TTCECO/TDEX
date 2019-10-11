@@ -19,6 +19,7 @@ contract TDEX is PermissionGroups {
     uint constant public decimals = 18;
     uint constant public orderDecimals = 15; 
     uint constant public maxPriceRange = 30;
+    uint constant public million = 10**6;
     
     uint public lastExecutionPrice = 0; // last execution price 
     uint public maxBuyPrice = 0;    // buy token by TTC 
@@ -34,8 +35,9 @@ contract TDEX is PermissionGroups {
     mapping(uint => Order) public allBuyOrder;  // orderID => Order  
     mapping(uint => Order) public allSellOrder; // orderID => Order 
 
-    uint public minTokenAmount = 100;           
-    
+    uint public minTokenAmount = 100*10**decimals;   // 100 token         
+    uint public makerTxFeePerMillion = 3000;         // 3/1000
+    uint public takerTxFeePerMillion = 1000;        //  1/1000   
     
     // set token address 
     function setTokenAddress(address _addr) onlyAdmin public {
@@ -47,6 +49,16 @@ contract TDEX is PermissionGroups {
     function setMinTokenAmount(uint _amount) onlyOperator public {
         minTokenAmount = _amount;
     } 
+    
+    function setMakerTxFee(uint _fee) onlyOperator public {
+        require(_fee < million.div(2));
+        makerTxFeePerMillion = _fee;
+    }
+    
+    function setTakerTxFee(uint _fee) onlyOperator public {
+        require(_fee < million.div(2));
+        takerTxFeePerMillion = _fee;
+    }
     
     // return orderID     
     function addBuyTokenOrder(uint _amount,uint _price) public payable returns (uint){
@@ -154,40 +166,44 @@ contract TDEX is PermissionGroups {
         uint sellAmount = allSellOrder[sellOrderID].amount;
         
         if ( buyOrderID != 0 && sellOrderID != 0) {
+            // buyer is maker 
+            uint TokenReceiverFee = makerTxFeePerMillion;
+            uint TTCReceiverFee = takerTxFeePerMillion;
+            lastExecutionPrice = buyPrice;
+            if (buyOrderID > sellOrderID) {
+                // seller is maker 
+                TokenReceiverFee = takerTxFeePerMillion;
+                TTCReceiverFee = makerTxFeePerMillion;
+                lastExecutionPrice = sellPrice;
+            }
+            
             if (buyAmount == sellAmount ) {
         
-                MyToken.transfer(allBuyOrder[buyOrderID].user, buyAmount);
-                uint value = allSellOrder[sellOrderID].amount.mul(allSellOrder[sellOrderID].price).div(10**(decimals-orderDecimals));
-                require(allSellOrder[sellOrderID].user.send(value));
+                MyToken.transfer(allBuyOrder[buyOrderID].user, buyAmount.mul(million.sub(TokenReceiverFee)).div(million));
+                uint value = allSellOrder[sellOrderID].amount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals));
+                require(allSellOrder[sellOrderID].user.send(value.mul(million.sub(TTCReceiverFee)).div(million)));
                 
                 delete allSellOrder[sellOrderID];
                 delete allBuyOrder[buyOrderID];
                 buyStartPos[buyPrice] += 1;
                 sellStartPos[sellPrice] += 1;
             } else if (buyAmount > sellAmount){
-                MyToken.transfer(allBuyOrder[buyOrderID].user, sellAmount);
-                value = sellAmount.mul(allSellOrder[sellOrderID].price).div(10**(decimals-orderDecimals));
-                require(allSellOrder[sellOrderID].user.send(value));           
+                MyToken.transfer(allBuyOrder[buyOrderID].user, sellAmount.mul(million.sub(TokenReceiverFee)).div(million));
+                value = sellAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals));
+                require(allSellOrder[sellOrderID].user.send(value.mul(million.sub(TTCReceiverFee)).div(million)));           
                 
                 allBuyOrder[buyOrderID].amount -= sellAmount;
                 delete allSellOrder[sellOrderID];
                 sellStartPos[sellPrice] += 1;
             } else {
-                MyToken.transfer(allBuyOrder[buyOrderID].user, buyAmount);
-                value = buyAmount.mul(allSellOrder[sellOrderID].price).div(10**(decimals-orderDecimals));
-                require(allSellOrder[sellOrderID].user.send(value));
+                MyToken.transfer(allBuyOrder[buyOrderID].user, buyAmount.mul(million.sub(TokenReceiverFee)).div(million));
+                value = buyAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals));
+                require(allSellOrder[sellOrderID].user.send(value.mul(million.sub(TTCReceiverFee)).div(million)));
                 
                 allSellOrder[sellOrderID].amount -= buyAmount;
                 delete allBuyOrder[buyOrderID];
                 buyStartPos[buyPrice] += 1;
             }
-            // update lastExecutionPrice 
-            if (buyPrice == maxBuyPrice){
-                lastExecutionPrice = buyPrice;
-            }else {
-                lastExecutionPrice = sellPrice;
-            }
-
         }
         dealEmptyPrice(buyPrice, true);
         dealEmptyPrice(sellPrice, false);
