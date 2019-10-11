@@ -15,6 +15,10 @@ contract TDEX is PermissionGroups {
         uint amount;
         uint price;
     }
+        
+    uint constant public decimals = 18;
+    uint constant public orderDecimals = 15; 
+    uint constant public maxPriceRange = 30;
     
     uint public lastExecutionPrice = 0; // last execution price 
     uint public maxBuyPrice = 0;    // buy token by TTC 
@@ -29,10 +33,9 @@ contract TDEX is PermissionGroups {
     uint public orderID = 0; // auto increase 
     mapping(uint => Order) public allBuyOrder;  // orderID => Order  
     mapping(uint => Order) public allSellOrder; // orderID => Order 
+
+    uint public minTokenAmount = 100;           
     
-    uint constant public decimals = 18;
-    uint constant public orderDecimals = 15; 
-    uint constant public maxPriceRange = 30;
     
     // set token address 
     function setTokenAddress(address _addr) onlyAdmin public {
@@ -40,8 +43,14 @@ contract TDEX is PermissionGroups {
         MyToken = TST20(_addr); 
     }
     
+    // set min token amount by operator 
+    function setMinTokenAmount(uint _amount) onlyOperator public {
+        minTokenAmount = _amount;
+    } 
+    
     // return orderID     
     function addBuyTokenOrder(uint _amount,uint _price) public payable returns (uint){
+        require(_amount >= minTokenAmount);
         _price = _price.div(10**orderDecimals);
         require(maxBuyPrice == 0 || maxBuyPrice < maxPriceRange ||  _price > maxBuyPrice - maxPriceRange );
         // make sure got enough TTC 
@@ -69,6 +78,7 @@ contract TDEX is PermissionGroups {
     
     // return orderID 
     function addSellTokenOrder(uint _amount, uint _price) public returns (uint) {
+        require(_amount >= minTokenAmount);
         _price = _price.div(10**orderDecimals);
         require(minSellPrice == 0 || _price < minSellPrice + maxPriceRange );
         MyToken.transferFrom(msg.sender, this, _amount);
@@ -124,8 +134,6 @@ contract TDEX is PermissionGroups {
         // just one step each time;
         buyPrice = allBuyOrder[buyOrderID].price;
         uint buyAmount = allBuyOrder[buyOrderID].amount;
-        
-
         uint minSellIndex = sellStartPos[minSellPrice];
         uint sellOrderID = 0;
         uint sellPrice = minSellPrice;
