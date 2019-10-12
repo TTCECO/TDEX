@@ -1,6 +1,6 @@
 var TDEX = artifacts.require("./TDEX.sol");
 var TOKEN;
-var targetToken = 'CFIAT';
+var targetToken = 'CLAY';
 if (targetToken == 'CLAY') {
     TOKEN = artifacts.require("./CLAY.sol");
 }else if (targetToken == 'CFIAT') {
@@ -58,11 +58,11 @@ contract('TDEX', function() {
 	}
 
 	function printBalance() {
-	    const ownerBalance = web3.eth.getBalance(owner);
-	    console.log("Owner balance", web3.fromWei(ownerBalance, "ether").toString(), " ETHER");
+        const ownerBalance = web3.eth.getBalance(owner);
+        console.log("Owner balance", web3.fromWei(ownerBalance, "ether").toString(), " ETHER");
 
-      const user1Balance = web3.eth.getBalance(user1);
-      console.log("user1 balance", web3.fromWei(user1Balance, "ether").toString(), " ETHER");
+        const user1Balance = web3.eth.getBalance(user1);
+        console.log("user1 balance", web3.fromWei(user1Balance, "ether").toString(), " ETHER");
   	
     }
 
@@ -71,8 +71,6 @@ contract('TDEX', function() {
       		printBalance();
     	});
   	});
-
-
 
     it("add token for tdex",  async () =>  {
         const tdex = await TDEX.deployed();
@@ -194,7 +192,7 @@ contract('TDEX', function() {
         const tdex = await TDEX.deployed();
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        console.log("before trade last_execute_price", last_execute_price);
+        //console.log("before trade last_execute_price", last_execute_price);
 
         
         price1_orders = await tdex.getOrderPriceDetails.call(10, 0, true);
@@ -203,7 +201,7 @@ contract('TDEX', function() {
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
-        console.log("xxx", price1_orders, price2_orders, price3_orders, price4_orders);
+        //console.log("xxx", price1_orders, price2_orders, price3_orders, price4_orders);
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price, user2Price/order_decimal, "equal");
@@ -227,10 +225,10 @@ contract('TDEX', function() {
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
-        console.log("yyy", price1_orders, price2_orders, price3_orders, price4_orders);
+        //console.log("yyy", price1_orders, price2_orders, price3_orders, price4_orders);
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        console.log("after trade last_execute_price", last_execute_price);
+        //console.log("after trade last_execute_price", last_execute_price);
         
         
     });
@@ -241,7 +239,7 @@ contract('TDEX', function() {
         const tdex = await TDEX.deployed();
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        console.log("before trade last_execute_price", last_execute_price);
+        //console.log("before trade last_execute_price", last_execute_price);
 
         
         price1_orders = await tdex.getOrderPriceDetails.call(10, 0, true);
@@ -249,7 +247,7 @@ contract('TDEX', function() {
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
-        console.log("xxx", price1_orders, price2_orders, price3_orders, price4_orders);
+        //console.log("xxx", price1_orders, price2_orders, price3_orders, price4_orders);
 
         await tdex.executeOrder({from:user5});
 
@@ -263,10 +261,10 @@ contract('TDEX', function() {
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
-        console.log("yyy", price1_orders, price2_orders, price3_orders, price4_orders);
+        //console.log("yyy", price1_orders, price2_orders, price3_orders, price4_orders);
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        console.log("after trade last_execute_price", last_execute_price);
+        //console.log("after trade last_execute_price", last_execute_price);
 
         
     });
@@ -351,7 +349,7 @@ contract('TDEX', function() {
         const tdex = await TDEX.deployed();
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        console.log("before trade last_execute_price", last_execute_price);
+        //console.log("before trade last_execute_price", last_execute_price);
 
         await tdex.executeOrder({from:user5});
 
@@ -361,7 +359,7 @@ contract('TDEX', function() {
         assert.equal(max_buy_price, user6UintPrice, "equal");
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        console.log("after trade last_execute_price", last_execute_price);
+        //console.log("after trade last_execute_price", last_execute_price);
 
         
     });
@@ -373,7 +371,7 @@ contract('TDEX', function() {
 
 
         order = await tdex.allSellOrder.call(6);
-        console.log("order 6", order);
+        //console.log("order 6", order);
 
         // cancel 6
         // order_index = await tdex.getOrderIndex(user3Price/order_decimal, false, 6, 0, 10);
