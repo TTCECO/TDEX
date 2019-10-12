@@ -7,54 +7,47 @@ if (targetToken == 'CLAY') {
     TOKEN = artifacts.require("./CFIAT.sol");
 }
 
-
 contract('TDEX', function() {
-  var eth = web3.eth;
-  var owner = eth.accounts[0];
+    var eth = web3.eth;
+    var owner = eth.accounts[0];
 
-  var user1 = eth.accounts[1];
-  var user1DepositTTCNum = 2 * 10 **18; //花费的TTC
-  var user1BuyNum = 200 * 10 **18; //想要买的数量
-  var user1Price = 0.01 * 10 ** 18
+    var user1 = eth.accounts[1];
+    var user1DepositTTCNum = 2 * 10 **18;   // TTC Amount
+    var user1BuyNum = 200 * 10 **18;        // Token Amount
+    var user1Price = 0.01 * 10 ** 18
 
-  var user2 = eth.accounts[2];
-  var user2DepositTTCNum = 2.2 * 10 **18; //花费的TTC
-  var user2BuyNum = 200 * 10 **18; //想要买的数量
-  var user2Price = 0.011 * 10 ** 18
+    var user2 = eth.accounts[2];
+    var user2DepositTTCNum = 2.2 * 10 **18; 
+    var user2BuyNum = 200 * 10 **18; 
+    var user2Price = 0.011 * 10 ** 18
 
-  var user3 = eth.accounts[3];
-  var user3SellNum = 300 * 10**18
-  var user3Price = 0.011 * 10 ** 18
+    var user3 = eth.accounts[3];
+    var user3SellNum = 300 * 10**18
+    var user3Price = 0.011 * 10 ** 18
 
+    var user4 = eth.accounts[4];
+    var user4SellNum = 300 * 10**18
+    var user4Price = 0.01 * 10 ** 18
 
-  var user4 = eth.accounts[4];
-  var user4SellNum = 300 * 10**18
-  var user4Price = 0.01 * 10 ** 18
+    var user5 = eth.accounts[5];
 
-  var user5 = eth.accounts[5];
+    var user6 = eth.accounts[6];
+    var user6DepositTTCNum = 2.7 * 10 **18; 
+    var user6BuyNum = 300 * 10 **18; 
+    var user6Price = 9000000000000000;
+    var user6UintPrice = 9;
 
+    var user7 = eth.accounts[7];
+    var user7DepositTTCNum = 2.8 * 10 **18; 
+    var user7BuyNum = 200 * 10 **18; 
+    var user7Price = 0.014 * 10 ** 18
 
-  var user6 = eth.accounts[6];
-  var user6DepositTTCNum = 2.7 * 10 **18; //花费的TTC
-  var user6BuyNum = 300 * 10 **18; //想要买的数量
-  var user6Price = 9000000000000000;
-  var user6UintPrice = 9;
-
-
-  var user7 = eth.accounts[7];
-  var user7DepositTTCNum = 2.8 * 10 **18; //花费的TTC
-  var user7BuyNum = 200 * 10 **18; //想要买的数量
-  var user7Price = 0.014 * 10 ** 18
- 
-
-  var ttpTotalSupply = 1000000000 * 10**18;
-
-  var decimal = 10 ** 18;
-
-  var order_decimal = 10 ** 15;
+    var ttpTotalSupply = 1000000000 * 10**18;
+    var decimal = 10 ** 18;
+    var order_decimal = 10 ** 15;
 
 	function getBalance(addr){
-	   return web3.fromWei(web3.eth.getBalance(addr), "ether");
+        return web3.fromWei(web3.eth.getBalance(addr), "ether");
 	}
 
 	function printBalance() {
@@ -106,7 +99,6 @@ contract('TDEX', function() {
         assert.equal(order[2], user2Price/order_decimal, "equal");
     });
 
-    
 
     it("transfer token to user3 and user4",  async () =>  {
         //const tdex = await TDEX.deployed();
@@ -153,6 +145,7 @@ contract('TDEX', function() {
         
     });
 
+
     it("user4 sell token",  async () =>  {
         const tdex = await TDEX.deployed();
 
@@ -166,8 +159,6 @@ contract('TDEX', function() {
 
         assert.equal(order[1], user4SellNum, "equal");
         assert.equal(order[2], user4Price/order_decimal, "equal");
-
-        
     });
 
 
@@ -184,9 +175,6 @@ contract('TDEX', function() {
     });
 
 
-    
-
-
     it("user5 execute order",  async () =>  {
 
         const tdex = await TDEX.deployed();
@@ -194,10 +182,8 @@ contract('TDEX', function() {
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("before trade last_execute_price", last_execute_price);
 
-        
         price1_orders = await tdex.getOrderPriceDetails.call(10, 0, true);
         price2_orders = await tdex.getOrderPriceDetails.call(11, 0, true);
-
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
@@ -208,7 +194,6 @@ contract('TDEX', function() {
 
         min_sell_price = await tdex.minSellPrice.call();
         assert.equal(min_sell_price, user4Price/order_decimal, "equal");
-
 
         // transfer token to user3 and user4
         await tdex.executeOrder({from:user5});
@@ -221,16 +206,13 @@ contract('TDEX', function() {
 
         price1_orders = await tdex.getOrderPriceDetails.call(10, 0, true);
         price2_orders = await tdex.getOrderPriceDetails.call(11, 0, true);
-
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
         //console.log("yyy", price1_orders, price2_orders, price3_orders, price4_orders);
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        //console.log("after trade last_execute_price", last_execute_price);
-        
-        
+        //console.log("after trade last_execute_price", last_execute_price); 
     });
 
 
@@ -240,7 +222,6 @@ contract('TDEX', function() {
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("before trade last_execute_price", last_execute_price);
-
         
         price1_orders = await tdex.getOrderPriceDetails.call(10, 0, true);
         price2_orders = await tdex.getOrderPriceDetails.call(11, 0, true);
@@ -265,10 +246,7 @@ contract('TDEX', function() {
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("after trade last_execute_price", last_execute_price);
-
-        
     });
-
 
 
     it("user1 cancel order",  async () =>  {
@@ -310,7 +288,6 @@ contract('TDEX', function() {
         assert.equal(user3_token_balance, user3SellNum*20, "equal");
         
     });
-
 
 
     it("user3 sell token",  async () =>  {
@@ -360,15 +337,12 @@ contract('TDEX', function() {
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("after trade last_execute_price", last_execute_price);
-
-        
     });
 
 
     it("user3 sell * 12 and cancel * 11",  async () =>  {
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
-
 
         order = await tdex.allSellOrder.call(6);
         //console.log("order 6", order);
@@ -418,7 +392,5 @@ contract('TDEX', function() {
         assert.equal(order[2], 0, "equal");
 
     });
-    
-
 
 });
