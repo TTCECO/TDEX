@@ -69,6 +69,8 @@ contract('TDEX', function() {
         await tdex.setTokenAddress(token.address, {from:owner});
         token_address = await tdex.MyToken.call();
         assert.equal(token_address, token.address, "equal");
+
+        await tdex.addOperator(owner,{from:owner});
     });
 
 
@@ -84,6 +86,18 @@ contract('TDEX', function() {
         assert.equal(order[2], user1Price/order_decimal, "equal");
     });
 
+    it("try add buy order less than min token amount ",async () => {    
+        const tdex = await TDEX.deployed();
+        tdex.setMinTokenAmount(user2BuyNum * 2, {from:owner});
+        var gotErr = false;
+        await tdex.addBuyTokenOrder(user2BuyNum, user2Price,{from:user2, to:tdex.address, value:user2DepositTTCNum}).catch(function(error) {
+            gotErr = true;
+            assert(error.toString().includes('Error: VM Exception while processing transaction: revert'), error.toString())
+            
+        });
+        assert.equal(gotErr, true, "equal");
+        await tdex.setMinTokenAmount(100*10**18, {from:owner});
+    });
 
     it("user2 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
