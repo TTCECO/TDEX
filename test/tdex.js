@@ -1,5 +1,6 @@
 var TDEX = artifacts.require("./TDEX.sol");
 var CLAY = artifacts.require("./CLAY.sol");
+var CFIAT = artifacts.require("./CFIAT.sol");
 
 
 contract('TDEX', function() {
