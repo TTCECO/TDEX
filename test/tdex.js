@@ -35,7 +35,6 @@ contract('TDEX', function() {
     var user6DepositTTCNum = 2.7 * 10 **18; 
     var user6BuyNum = 300 * 10 **18; 
     var user6Price = 9000000000000000;
-    var user6UintPrice = 9;
 
     var user7 = eth.accounts[7];
     var user7DepositTTCNum = 2.8 * 10 **18; 
@@ -171,7 +170,8 @@ contract('TDEX', function() {
 
         order = await tdex.allBuyOrder.call(5);
         assert.equal(order[1], user6BuyNum, "equal");
-        assert.equal(order[2], user6UintPrice, "equal");
+        assert.equal(order[2].toNumber(), user6Price/order_decimal,"equal");
+
     });
 
 
@@ -259,7 +259,7 @@ contract('TDEX', function() {
         await tdex.cancelBuyOrder(1, order_index, {from:user1});
 
         max_buy_price = await tdex.maxBuyPrice.call();
-        assert.equal(max_buy_price, user6UintPrice, "equal");
+        assert.equal(max_buy_price, user6Price/order_decimal,"equal");
 
         order = await tdex.allBuyOrder.call(1);
         assert.equal(order[1], 0, "equal");
@@ -333,7 +333,7 @@ contract('TDEX', function() {
         min_sell_price = await tdex.minSellPrice.call();
         assert.equal(min_sell_price, user3Price/order_decimal, "equal");
         max_buy_price = await tdex.maxBuyPrice.call();
-        assert.equal(max_buy_price, user6UintPrice, "equal");
+        assert.equal(max_buy_price, user6Price/order_decimal,"equal");
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("after trade last_execute_price", last_execute_price);
