@@ -191,6 +191,7 @@ contract('TDEX', function() {
     it("executer execute order",  async () =>  {
 
         const tdex = await TDEX.deployed();
+        const token = await TOKEN.deployed();
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("before trade last_execute_price", last_execute_price);
@@ -208,8 +209,17 @@ contract('TDEX', function() {
         min_sell_price = await tdex.minSellPrice.call();
         assert.equal(min_sell_price, user4Price/order_decimal, "equal");
 
-        // transfer token to user3 and user4
+
+        maker_tx_fee_per_million = await tdex.makerTxFeePerMillion.call();
+        taker_tx_fee_per_million = await tdex.takerTxFeePerMillion.call();
+        million = await tdex.million.call();
+        user4_ttc_before = await web3.eth.getBalance(user4);
+        user2_token_before = await token.balanceOf.call(user2);
+        // transfer token from user4 to user2
         await tdex.executeOrder({from:executer});
+        user4_ttc_after = await web3.eth.getBalance(user4);
+        user2_token_after = await token.balanceOf.call(user2);
+
 
         min_sell_price = await tdex.minSellPrice.call();
         assert.equal(min_sell_price, user4Price/order_decimal, "equal");
@@ -226,12 +236,18 @@ contract('TDEX', function() {
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("after trade last_execute_price", last_execute_price); 
+
+        assert.equal(user2BuyNum*(million-maker_tx_fee_per_million),(user2_token_after - user2_token_before)*million,"equal");
+        assert.equal(user2BuyNum*last_execute_price*(million-taker_tx_fee_per_million)*order_decimal ,
+            (user4_ttc_after - user4_ttc_before)*million * decimal,"equal");
+
     });
 
 
     it("executer execute order again",  async () =>  {
 
         const tdex = await TDEX.deployed();
+        const token = await TOKEN.deployed();
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("before trade last_execute_price", last_execute_price);
@@ -243,7 +259,15 @@ contract('TDEX', function() {
         
         //console.log("xxx", price1_orders, price2_orders, price3_orders, price4_orders);
 
+        maker_tx_fee_per_million = await tdex.makerTxFeePerMillion.call();
+        taker_tx_fee_per_million = await tdex.takerTxFeePerMillion.call();
+        million = await tdex.million.call();
+        user4_ttc_before = await web3.eth.getBalance(user4);
+        user1_token_before = await token.balanceOf.call(user1);
         await tdex.executeOrder({from:executer});
+        user4_ttc_after = await web3.eth.getBalance(user4);
+        user1_token_after = await token.balanceOf.call(user1);
+
 
         min_sell_price = await tdex.minSellPrice.call();
         assert.equal(min_sell_price, user3Price/order_decimal, "equal");
@@ -259,6 +283,10 @@ contract('TDEX', function() {
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("after trade last_execute_price", last_execute_price);
+
+        assert.equal((user4SellNum - user2BuyNum)*(million-maker_tx_fee_per_million),(user1_token_after - user1_token_before)*million,"equal");
+        assert.equal((user4SellNum - user2BuyNum)*last_execute_price*(million-taker_tx_fee_per_million)*order_decimal ,
+            (user4_ttc_after - user4_ttc_before)*million * decimal,"equal");
     });
 
 
