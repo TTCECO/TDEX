@@ -1,6 +1,11 @@
 var TDEX = artifacts.require("./TDEX.sol");
-var CLAY = artifacts.require("./CLAY.sol");
-var CFIAT = artifacts.require("./CFIAT.sol");
+var TOKEN;
+var targetToken = 'CFIAT';
+if (targetToken == 'CLAY') {
+    TOKEN = artifacts.require("./CLAY.sol");
+}else if (targetToken == 'CFIAT') {
+    TOKEN = artifacts.require("./CFIAT.sol");
+}
 
 
 contract('TDEX', function() {
@@ -69,16 +74,16 @@ contract('TDEX', function() {
 
 
 
-    it("add clay for tdex",  async () =>  {
+    it("add token for tdex",  async () =>  {
         const tdex = await TDEX.deployed();
-        const clay = await CLAY.deployed();
-        await tdex.setTokenAddress(clay.address, {from:owner});
-        clay_address = await tdex.MyToken.call();
-        assert.equal(clay_address, clay.address, "equal");
+        const token = await TOKEN.deployed();
+        await tdex.setTokenAddress(token.address, {from:owner});
+        token_address = await tdex.MyToken.call();
+        assert.equal(token_address, token.address, "equal");
     });
 
 
-    it("user1 buy clay",  async () =>  {
+    it("user1 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
         await tdex.addBuyTokenOrder(user1BuyNum, user1Price,{from:user1, to:tdex.address, value:user1DepositTTCNum});
 
@@ -91,7 +96,7 @@ contract('TDEX', function() {
     });
 
 
-    it("user2 buy clay",  async () =>  {
+    it("user2 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
         await tdex.addBuyTokenOrder(user2BuyNum, user2Price,{from:user2, to:tdex.address, value:user2DepositTTCNum});
 
@@ -105,31 +110,37 @@ contract('TDEX', function() {
 
     
 
-    it("transfer clay to user3 and user4",  async () =>  {
+    it("transfer token to user3 and user4",  async () =>  {
         //const tdex = await TDEX.deployed();
-        const clay = await CLAY.deployed();
+        const token = await TOKEN.deployed();
         const tdex = await TDEX.deployed();
-        await clay.transfer(user3,user3SellNum*20, {from:owner});
-        await clay.transfer(user4,user4SellNum*20, {from:owner});
+
+        if (targetToken == 'CFIAT') {
+                await token.addOperator(owner,{from:owner});
+                await token.create(owner,25*10**26,{from:owner});
+        }
+
+        await token.transfer(user3,user3SellNum*20, {from:owner});
+        await token.transfer(user4,user4SellNum*20, {from:owner});
         
-        user3_clay_balance = await clay.balanceOf.call(user3);
-        assert.equal(user3_clay_balance, user3SellNum*20, "equal");
+        user3_token_balance = await token.balanceOf.call(user3);
+        assert.equal(user3_token_balance, user3SellNum*20, "equal");
 
-        user4_clay_balance = await clay.balanceOf.call(user4);
-        assert.equal(user4_clay_balance, user4SellNum*20, "equal");
+        user4_token_balance = await token.balanceOf.call(user4);
+        assert.equal(user4_token_balance, user4SellNum*20, "equal");
 
 
-        await clay.approve(tdex.address,user3SellNum*20, {from:user3});
-        await clay.approve(tdex.address,user4SellNum*20, {from:user4});
+        await token.approve(tdex.address,user3SellNum*20, {from:user3});
+        await token.approve(tdex.address,user4SellNum*20, {from:user4});
         
     });
 
 
-    it("user3 sell clay",  async () =>  {
+    it("user3 sell token",  async () =>  {
         const tdex = await TDEX.deployed();
-        const clay = await CLAY.deployed();
+        const token = await TOKEN.deployed();
 
-        // transfer clay to user3 and user4
+        // transfer token to user3 and user4
         await tdex.addSellTokenOrder(user3SellNum, user3Price,{from:user3});
 
         min_sell_price = await tdex.minSellPrice.call();
@@ -139,15 +150,15 @@ contract('TDEX', function() {
         assert.equal(order[1], user3SellNum, "equal");
         assert.equal(order[2], user3Price/order_decimal, "equal");
 
-        user3_clay_balance = await clay.balanceOf.call(user3);
-        assert.equal(user3_clay_balance, user3SellNum*20-user3SellNum, "equal");
+        user3_token_balance = await token.balanceOf.call(user3);
+        assert.equal(user3_token_balance, user3SellNum*20-user3SellNum, "equal");
         
     });
 
-    it("user4 sell clay",  async () =>  {
+    it("user4 sell token",  async () =>  {
         const tdex = await TDEX.deployed();
 
-        // transfer clay to user3 and user4
+        // transfer token to user3 and user4
         await tdex.addSellTokenOrder(user4SellNum, user4Price,{from:user4});
 
         min_sell_price = await tdex.minSellPrice.call();
@@ -162,7 +173,7 @@ contract('TDEX', function() {
     });
 
 
-    it("user6 buy clay",  async () =>  {
+    it("user6 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
         await tdex.addBuyTokenOrder(user6BuyNum, user6Price,{from:user6, to:tdex.address, value:user6DepositTTCNum});
 
@@ -201,7 +212,7 @@ contract('TDEX', function() {
         assert.equal(min_sell_price, user4Price/order_decimal, "equal");
 
 
-        // transfer clay to user3 and user4
+        // transfer token to user3 and user4
         await tdex.executeOrder({from:user5});
 
         min_sell_price = await tdex.minSellPrice.call();
@@ -265,7 +276,7 @@ contract('TDEX', function() {
     it("user1 cancel order",  async () =>  {
         const tdex = await TDEX.deployed();
 
-        // transfer clay to user3 and user4
+        // transfer token to user3 and user4
         order_index = await tdex.getOrderIndex(user1Price/order_decimal, true, 1, 0, 10);
         assert.equal(order_index, 0)
 
@@ -282,9 +293,9 @@ contract('TDEX', function() {
 
     it("user3 cancel order",  async () =>  {
         const tdex = await TDEX.deployed();
-        const clay = await CLAY.deployed();
+        const token = await TOKEN.deployed();
 
-        // transfer clay to user3 and user4
+        // transfer token to user3 and user4
         order_index = await tdex.getOrderIndex(user3Price/order_decimal, false, 3, 0, 10);
         assert.equal(order_index, 0)
 
@@ -297,18 +308,18 @@ contract('TDEX', function() {
         assert.equal(order[1], 0, "equal");
         assert.equal(order[2], 0, "equal");
 
-        user3_clay_balance = await clay.balanceOf.call(user3);
-        assert.equal(user3_clay_balance, user3SellNum*20, "equal");
+        user3_token_balance = await token.balanceOf.call(user3);
+        assert.equal(user3_token_balance, user3SellNum*20, "equal");
         
     });
 
 
 
-    it("user3 sell clay",  async () =>  {
+    it("user3 sell token",  async () =>  {
         const tdex = await TDEX.deployed();
-        const clay = await CLAY.deployed();
+        const token = await TOKEN.deployed();
 
-        // transfer clay to user3 and user4
+        // transfer token to user3 and user4
         await tdex.addSellTokenOrder(user3SellNum, user3Price,{from:user3});
 
         min_sell_price = await tdex.minSellPrice.call();
@@ -318,12 +329,12 @@ contract('TDEX', function() {
         assert.equal(order[1], user3SellNum, "equal");
         assert.equal(order[2], user3Price/order_decimal, "equal");
 
-        user3_clay_balance = await clay.balanceOf.call(user3);
-        assert.equal(user3_clay_balance, user3SellNum*20-user3SellNum, "equal");
+        user3_token_balance = await token.balanceOf.call(user3);
+        assert.equal(user3_token_balance, user3SellNum*20-user3SellNum, "equal");
         
     });
 
-    it("user7 buy clay",  async () =>  {
+    it("user7 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
         await tdex.addBuyTokenOrder(user2BuyNum, user7Price,{from:user7, to:tdex.address, value:user7DepositTTCNum});
 
@@ -358,7 +369,7 @@ contract('TDEX', function() {
 
     it("user3 sell * 12 and cancel * 11",  async () =>  {
         const tdex = await TDEX.deployed();
-        const clay = await CLAY.deployed();
+        const token = await TOKEN.deployed();
 
 
         order = await tdex.allSellOrder.call(6);
