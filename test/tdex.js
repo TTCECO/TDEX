@@ -41,7 +41,6 @@ contract('TDEX', function() {
     var user7BuyNum = 200 * 10 **18; 
     var user7Price = 0.014 * 10 ** 18
 
-    var ttpTotalSupply = 1000000000 * 10**18;
     var decimal = 10 ** 18;
     var order_decimal = 10 ** 15;
 
