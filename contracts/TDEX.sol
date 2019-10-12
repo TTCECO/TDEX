@@ -48,6 +48,7 @@ contract TDEX is PermissionGroups {
     // 4 - exeSellOrder 
     // 5 - cancelBuyOrder
     // 6 - cancelSellOrder
+    // 7 - refundExtraTTC
 
     
     // set token address 
@@ -211,13 +212,24 @@ contract TDEX is PermissionGroups {
                 buyStartPos[buyPrice] += 1;
             }
             
+            
             MyToken.transfer(buyer, executeAmount.mul(million.sub(TokenReceiverFee)).div(million));
-            require(seller.send(executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(million.sub(TTCReceiverFee)).div(million)));  
+            require(seller.send(executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(million.sub(TTCReceiverFee)).div(million)));
+            
+            if (buyOrderID > sellOrderID && buyPrice > lastExecutionPrice) {
+                refundExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice);
+            }
             TE(3, buyer, executeAmount, lastExecutionPrice);
             TE(4, seller, executeAmount, lastExecutionPrice);
         }
+        
         dealEmptyPrice(buyPrice, true);
         dealEmptyPrice(sellPrice, false);
+    }
+    
+    function refundExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice) private {
+        require(_buyer.send(_amount.mul(_buyPrice.sub(_lastPrice)).div(10**(decimals-orderDecimals))));
+        TE(7, _buyer, _amount, _lastPrice);
     }
 
     function dealEmptyPrice(uint _price, bool _isBuyOrder ) public {
