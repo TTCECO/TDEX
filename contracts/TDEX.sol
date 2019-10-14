@@ -143,7 +143,7 @@ contract TDEX is PermissionGroups {
         for (uint i = maxBuyIndex; i<maxBuyIndex + 10; i++) {
             buyStartPos[maxBuyPrice] = i;
             if (i >= buyTokenOrderMap[maxBuyPrice].length) {
-                continue;
+                break;
             }
             if (buyTokenOrderMap[maxBuyPrice][i] == 0) {
                 continue;
@@ -162,7 +162,7 @@ contract TDEX is PermissionGroups {
         for (i = minSellIndex; i<minSellIndex + 10; i++) {
             sellStartPos[minSellPrice] = i;
             if (i >= sellTokenOrderMap[minSellPrice].length) {
-                continue;
+                break;
             }
             if (sellTokenOrderMap[minSellPrice][i] == 0) {
                 continue;
