@@ -259,14 +259,7 @@ contract TDEX is PermissionGroups {
         }
     }
 
-    /*
-    function moveOrderList(uint _price) public {
-        // move the list both buyTokenOrderMap and sellTokenOrderMap
-        // if the price exist to move first n zeros.
-        
 
-    }
-    */
     function cancelBuyOrder(uint _orderID, uint _index) public {
         require(allBuyOrder[_orderID].user == msg.sender);
         require(buyTokenOrderMap[allBuyOrder[_orderID].price][_index] == _orderID);
