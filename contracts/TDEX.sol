@@ -90,9 +90,6 @@ contract TDEX is PermissionGroups {
         
         buyTokenOrderMap[_price].push(orderID); 
         
-        // check if line above this order 
-        // check if there is sell order can be executed
-        // update lastExecutionPrice
         // update maxBuyPrice
         if (maxBuyPrice < _price) {
             maxBuyPrice = _price;
@@ -116,9 +113,7 @@ contract TDEX is PermissionGroups {
         });
         
         sellTokenOrderMap[_price].push(orderID);
-        // check if line above this order 
-        // check if there is fix buy order 
-        // update lastExecutionPrice
+
         // udpate minSellPrice
         if (minSellPrice > _price) {
             minSellPrice = _price;
@@ -148,7 +143,7 @@ contract TDEX is PermissionGroups {
         for (uint i = maxBuyIndex; i<maxBuyIndex + 10; i++) {
             buyStartPos[maxBuyPrice] = i;
             if (i >= buyTokenOrderMap[maxBuyPrice].length) {
-                break;
+                continue;
             }
             if (buyTokenOrderMap[maxBuyPrice][i] == 0) {
                 continue;
@@ -167,7 +162,7 @@ contract TDEX is PermissionGroups {
         for (i = minSellIndex; i<minSellIndex + 10; i++) {
             sellStartPos[minSellPrice] = i;
             if (i >= sellTokenOrderMap[minSellPrice].length) {
-                break;
+                continue;
             }
             if (sellTokenOrderMap[minSellPrice][i] == 0) {
                 continue;
