@@ -217,6 +217,7 @@ contract TDEX is PermissionGroups {
             require(seller.send(executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(million.sub(TTCReceiverFee)).div(million)));
             
             if (buyOrderID > sellOrderID && buyPrice > lastExecutionPrice) {
+                
                 refundExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice);
             }
             TE(3, buyer, executeAmount, lastExecutionPrice);
@@ -228,8 +229,9 @@ contract TDEX is PermissionGroups {
     }
     
     function refundExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice) private {
-        require(_buyer.send(_amount.mul(_buyPrice.sub(_lastPrice)).div(10**(decimals-orderDecimals))));
-        TE(7, _buyer, _amount, _lastPrice);
+        uint diffPrice = _buyPrice.sub(_lastPrice);
+        require(_buyer.send(_amount.mul(diffPrice).div(10**(decimals-orderDecimals))));
+        TE(7, _buyer, _amount, diffPrice);
     }
 
     function dealEmptyPrice(uint _price, bool _isBuyOrder ) public {
