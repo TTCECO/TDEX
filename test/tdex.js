@@ -460,4 +460,39 @@ contract('TDEX', function() {
 
     });
 
+
+    it("withdraw all from contract",  async () =>  {
+        const tdex = await TDEX.deployed();
+        const token = await TOKEN.deployed();
+
+        await tdex.initAddressSettings(1,owner,{from:owner});
+        owner_ttc_before = await web3.eth.getBalance(owner);
+        owner_token_before = await token.balanceOf.call(owner);
+        contract_ttc_before = await web3.eth.getBalance(tdex.address);
+        contract_token_before = await token.balanceOf.call(tdex.address);
+        gas_used = 0;
+        gas_price = new web3.BigNumber(1000000);
+        res = await tdex.withdrawTTC({from:owner,gasPrice:gas_price});
+        gas_used = res.receipt.gasUsed;
+        
+        owner_ttc_after = await web3.eth.getBalance(owner);
+        contract_ttc_after = await web3.eth.getBalance(tdex.address);
+        res = await tdex.withdrawToken({from:owner,gasPrice:gas_price});
+
+        gas_v = gas_price.mul(gas_used);
+
+        owner_token_after = await token.balanceOf.call(owner);
+        contract_token_after = await token.balanceOf.call(tdex.address);
+
+        assert.equal(contract_token_before.toNumber() > 0, true, "equal");
+        assert.equal(contract_ttc_before.toNumber() > 0, true, "equal");
+        assert.equal(contract_token_after.toNumber() == 0, true, "equal");
+        assert.equal(contract_ttc_after.toNumber() == 0, true, "equal");
+        assert.equal(owner_token_before.add(contract_token_before).toString(10),
+                    owner_token_after.add(contract_token_after).toString(10),
+                    "equal");
+        assert.equal(owner_ttc_before.add(contract_ttc_before).toString(10),
+                    owner_ttc_after.add(contract_ttc_after).add(gas_v).toString(10),
+                    "equal");
+    });
 });
