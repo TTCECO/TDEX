@@ -38,6 +38,8 @@ contract TDEX is PermissionGroups {
     uint public minTokenAmount = 100*10**decimals;   // 100 token         
     uint public makerTxFeePerMillion = 3000;         // 3/1000
     uint public takerTxFeePerMillion = 1000;        //  1/1000   
+
+    address public adminWithdrawAddress;
     
     
     event TE(uint t, address addr, uint v1, uint v2);
@@ -50,7 +52,22 @@ contract TDEX is PermissionGroups {
     // 6 - cancelSellOrder
     // 7 - refundExtraTTC
 
+    function setWithdrawAddress(address _addr) onlyAdmin public { 
+        require(_addr != address(0));
+        adminWithdrawAddress = _addr;
+    }
+
+    /*withdraw TTC by operator */
+    function withdrawTTC() onlyAdmin public {
+        require(adminWithdrawAddress.send(this.balance));
+    }
     
+    /*withdraw Token by operator */
+    function withdrawToken() onlyAdmin public {
+        MyToken.transfer(adminWithdrawAddress, MyToken.balanceOf(this));
+    }
+
+
     // set token address 
     function setTokenAddress(address _addr) onlyAdmin public {
         require(_addr != address(0));
