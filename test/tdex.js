@@ -68,7 +68,7 @@ contract('TDEX', function() {
     it("add token for tdex",  async () =>  {
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
-        await tdex.setTokenAddress(token.address, {from:owner});
+        await tdex.initAddressSettings(2,token.address, {from:owner});
         token_address = await tdex.MyToken.call();
         assert.equal(token_address, token.address, "equal");
         await tdex.addOperator(owner,{from:owner});

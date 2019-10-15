@@ -52,9 +52,14 @@ contract TDEX is PermissionGroups {
     // 6 - cancelSellOrder
     // 7 - refundExtraTTC
 
-    function setWithdrawAddress(address _addr) onlyAdmin public { 
+
+    function initAddressSettings(uint _type,address _addr) onlyAdmin public {
         require(_addr != address(0));
-        adminWithdrawAddress = _addr;
+        if (_type == 1) {
+            adminWithdrawAddress = _addr;       
+        }else if (_type == 2 ) {
+            MyToken = TST20(_addr); 
+        }  
     }
 
     /*withdraw TTC by operator */
@@ -65,13 +70,6 @@ contract TDEX is PermissionGroups {
     /*withdraw Token by operator */
     function withdrawToken() onlyAdmin public {
         MyToken.transfer(adminWithdrawAddress, MyToken.balanceOf(this));
-    }
-
-
-    // set token address 
-    function setTokenAddress(address _addr) onlyAdmin public {
-        require(_addr != address(0));
-        MyToken = TST20(_addr); 
     }
     
     // set min token amount by operator 
