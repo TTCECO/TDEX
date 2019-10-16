@@ -45,7 +45,7 @@ contract TDEX is PermissionGroups {
     address public adminWithdrawAddress;
     
     
-    event TE(uint t, address addr, uint v1, uint v2);
+    event TE(uint t, address addr, uint orderID, uint index, uint amount, uint price);
     // user operation
     // 1 - addBuyTokenOrder
     // 2 - addSellTokenOrder
@@ -91,7 +91,7 @@ contract TDEX is PermissionGroups {
     }
     
     // return orderID     
-    function addBuyTokenOrder(uint _amount,uint _price) public payable returns (uint){
+    function addBuyTokenOrder(uint _amount,uint _price) public payable {
         require(_amount >= minTokenAmount);
         _price = _price.div(10**orderDecimals);
         require(maxBuyPrice == 0 || maxBuyPrice < maxPriceRange ||  _price > maxBuyPrice - maxPriceRange );
@@ -113,12 +113,12 @@ contract TDEX is PermissionGroups {
             maxBuyPrice = _price;
         }
         buyAmountByPrice[_price] = buyAmountByPrice[_price].add(_amount);
-        TE(1, msg.sender, _amount, _price);
-        return orderID;
+        TE(1, msg.sender, orderID,buyTokenOrderMap[_price].length -1 , _amount, _price);
+     
     }
     
     // return orderID 
-    function addSellTokenOrder(uint _amount, uint _price) public returns (uint) {
+    function addSellTokenOrder(uint _amount, uint _price) public {
         require(_amount >= minTokenAmount);
         _price = _price.div(10**orderDecimals);
         require(minSellPrice == 0 || _price < minSellPrice + maxPriceRange );
@@ -138,8 +138,7 @@ contract TDEX is PermissionGroups {
             minSellPrice = _price;
         }
         sellAmountByPrice[_price] = sellAmountByPrice[_price].add(_amount);
-        TE(2, msg.sender, _amount, _price);
-        return orderID;
+        TE(2, msg.sender, orderID,sellTokenOrderMap[_price].length -1 ,_amount, _price);
     }
     
     function existExecutionOrders() public view returns (bool) {
@@ -236,8 +235,8 @@ contract TDEX is PermissionGroups {
                 
                 refundExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice);
             }
-            TE(3, buyer, executeAmount, lastExecutionPrice);
-            TE(4, seller, executeAmount, lastExecutionPrice);
+            TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice);
+            TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice);
         }
         
         dealEmptyPrice(buyPrice, true);
@@ -247,7 +246,7 @@ contract TDEX is PermissionGroups {
     function refundExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice) private {
         uint diffPrice = _buyPrice.sub(_lastPrice);
         require(_buyer.send(_amount.mul(diffPrice).div(10**(decimals-orderDecimals))));
-        TE(7, _buyer, _amount, diffPrice);
+        TE(7, _buyer,0,0, _amount, diffPrice);
     }
 
     function dealEmptyPrice(uint _price, bool _isBuyOrder ) public {
@@ -300,7 +299,7 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(buyPrice, true);
         delete allBuyOrder[_orderID];
         
-        TE(5, msg.sender, buyAmount, buyPrice);
+        TE(5, msg.sender,_orderID, _index, buyAmount, buyPrice);
         buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(buyAmount);
     }
     
@@ -322,7 +321,7 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(sellPrice, false);
         delete allSellOrder[_orderID];
         
-        TE(6, msg.sender, sellAmount, sellPrice);
+        TE(6, msg.sender,_orderID, _index, sellAmount, sellPrice);
         sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(sellAmount);
     }
         
