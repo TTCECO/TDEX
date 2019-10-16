@@ -21,23 +21,26 @@ contract TDEX is PermissionGroups {
     uint constant public maxPriceRange = 30;
     uint constant public million = 10**6;
     
-    uint public lastExecutionPrice = 0; // last execution price 
-    uint public maxBuyPrice = 0;    // buy token by TTC 
-    uint public minSellPrice = 10**decimals;   // sell token 
+    uint public lastExecutionPrice = 0;                 // last execution price 
+    uint public maxBuyPrice = 0;                        // buy token by TTC 
+    uint public minSellPrice = 10**decimals;            // sell token 
     
-    mapping(uint => uint[]) public buyTokenOrderMap;  // price => orderID []
-    mapping(uint => uint[]) public sellTokenOrderMap; // price => orderID []
+    mapping(uint => uint[]) public buyTokenOrderMap;    // price => orderID []
+    mapping(uint => uint[]) public sellTokenOrderMap;   // price => orderID []
     
-    mapping(uint => uint) public buyStartPos; // price => start index of buyTokenOrderMap
-    mapping(uint => uint) public sellStartPos; // price => start index of sellTokenOrderMap
+    mapping(uint => uint) public buyStartPos;           // price => start index of buyTokenOrderMap
+    mapping(uint => uint) public sellStartPos;          // price => start index of sellTokenOrderMap
+
+    mapping(uint => uint) public buyAmountByPrice;             // price => amount
+    mapping(uint => uint) public sellAmountByPrice;            // price => amount
     
     uint public orderID = 0; // auto increase 
-    mapping(uint => Order) public allBuyOrder;  // orderID => Order  
-    mapping(uint => Order) public allSellOrder; // orderID => Order 
+    mapping(uint => Order) public allBuyOrder;          // orderID => Order  
+    mapping(uint => Order) public allSellOrder;         // orderID => Order 
 
-    uint public minTokenAmount = 100*10**decimals;   // 100 token         
-    uint public makerTxFeePerMillion = 3000;         // 3/1000
-    uint public takerTxFeePerMillion = 1000;        //  1/1000   
+    uint public minTokenAmount = 100*10**decimals;      // 100 token         
+    uint public makerTxFeePerMillion = 3000;            // 3/1000
+    uint public takerTxFeePerMillion = 1000;            // 1/1000   
 
     address public adminWithdrawAddress;
     
@@ -109,6 +112,7 @@ contract TDEX is PermissionGroups {
         if (maxBuyPrice < _price) {
             maxBuyPrice = _price;
         }
+        buyAmountByPrice[_price] = buyAmountByPrice[_price].add(_amount);
         TE(1, msg.sender, _amount, _price);
         return orderID;
     }
@@ -133,7 +137,7 @@ contract TDEX is PermissionGroups {
         if (minSellPrice > _price) {
             minSellPrice = _price;
         }
-        
+        sellAmountByPrice[_price] = sellAmountByPrice[_price].add(_amount);
         TE(2, msg.sender, _amount, _price);
         return orderID;
     }
@@ -222,6 +226,8 @@ contract TDEX is PermissionGroups {
                 buyStartPos[buyPrice] += 1;
             }
             
+            buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(executeAmount);
+            sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(executeAmount);
             
             MyToken.transfer(buyer, executeAmount.mul(million.sub(TokenReceiverFee)).div(million));
             require(seller.send(executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(million.sub(TTCReceiverFee)).div(million)));
@@ -277,39 +283,47 @@ contract TDEX is PermissionGroups {
 
     function cancelBuyOrder(uint _orderID, uint _index) public {
         require(allBuyOrder[_orderID].user == msg.sender);
-        require(buyTokenOrderMap[allBuyOrder[_orderID].price][_index] == _orderID);
+        uint buyPrice = allBuyOrder[_orderID].price;
+        uint buyAmount = allBuyOrder[_orderID].amount;
+        require(buyTokenOrderMap[buyPrice][_index] == _orderID && allBuyOrder[_orderID].amount > 0);
+        allBuyOrder[_orderID].amount = 0 ; // for reentrancy
         
-        uint value = allBuyOrder[_orderID].amount.mul(allBuyOrder[_orderID].price).div(10**(decimals-orderDecimals));
+        uint value = buyAmount.mul(buyPrice).div(10**(decimals-orderDecimals));
         require(allBuyOrder[_orderID].user.send(value));
-        buyTokenOrderMap[allBuyOrder[_orderID].price][_index] = 0;
+        buyTokenOrderMap[buyPrice][_index] = 0;
         if (_index == 0){
-            buyStartPos[allBuyOrder[_orderID].price] = 1;
-        }else if (buyStartPos[allBuyOrder[_orderID].price] == _index ) {
-            buyStartPos[allBuyOrder[_orderID].price] = _index + 1;
+            buyStartPos[buyPrice] = 1;
+        }else if (buyStartPos[buyPrice] == _index ) {
+            buyStartPos[buyPrice] = _index + 1;
         }
 
-        dealEmptyPrice(allBuyOrder[_orderID].price, true);
+        dealEmptyPrice(buyPrice, true);
         delete allBuyOrder[_orderID];
         
-        TE(5, msg.sender, allBuyOrder[_orderID].amount, allBuyOrder[_orderID].price);
+        TE(5, msg.sender, buyAmount, buyPrice);
+        buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(buyAmount);
     }
     
     function cancelSellOrder(uint _orderID, uint _index) public {
         require(allSellOrder[_orderID].user == msg.sender);
-        require(sellTokenOrderMap[allSellOrder[_orderID].price][_index] == _orderID);
+        uint sellPrice = allSellOrder[_orderID].price;
+        uint sellAmount = allSellOrder[_orderID].amount;
+        require(sellTokenOrderMap[sellPrice][_index] == _orderID && allSellOrder[_orderID].amount > 0);
+        allSellOrder[_orderID].amount = 0; // for reentrancy
         
-        MyToken.transfer(allSellOrder[_orderID].user, allSellOrder[_orderID].amount);
-        sellTokenOrderMap[allSellOrder[_orderID].price][_index] = 0;
+        MyToken.transfer(allSellOrder[_orderID].user, sellAmount);
+        sellTokenOrderMap[sellPrice][_index] = 0;
         if (_index == 0){
-            sellStartPos[allSellOrder[_orderID].price] = 1;
-        }else if (sellStartPos[allSellOrder[_orderID].price] == _index ) {
-            sellStartPos[allSellOrder[_orderID].price] = _index + 1;
+            sellStartPos[sellPrice] = 1;
+        }else if (sellStartPos[sellPrice] == _index ) {
+            sellStartPos[sellPrice] = _index + 1;
         }
 
-        dealEmptyPrice(allSellOrder[_orderID].price, false);
+        dealEmptyPrice(sellPrice, false);
         delete allSellOrder[_orderID];
         
-        TE(6, msg.sender, allSellOrder[_orderID].amount, allSellOrder[_orderID].price);
+        TE(6, msg.sender, sellAmount, sellPrice);
+        sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(sellAmount);
     }
         
     function getOrderDetails(uint _orderID, bool _isBuyOrder) public view returns(Order){
