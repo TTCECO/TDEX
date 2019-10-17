@@ -222,7 +222,6 @@ contract('TDEX', function() {
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
-        //console.log("xxx", price1_orders, price2_orders, price3_orders, price4_orders);
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price.toString(10), user[2].price.div(order_decimal).toString(10), "equal");
@@ -270,10 +269,8 @@ contract('TDEX', function() {
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
-        //console.log("yyy", price1_orders, price2_orders, price3_orders, price4_orders);
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        //console.log("after trade last_execute_price", last_execute_price); 
 
         assert.equal(user[2].num.mul(million.sub(maker_tx_fee_per_million)).div(million).toString(10),
             user2_token_after.sub(user2_token_before).toString(10),
@@ -296,14 +293,12 @@ contract('TDEX', function() {
         const token = await TOKEN.deployed();
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        //console.log("before trade last_execute_price", last_execute_price);
         
         price1_orders = await tdex.getOrderPriceDetails.call(10, 0, true);
         price2_orders = await tdex.getOrderPriceDetails.call(11, 0, true);
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
-        //console.log("xxx", price1_orders, price2_orders, price3_orders, price4_orders);
 
         maker_tx_fee_per_million = await tdex.makerTxFeePerMillion.call();
         taker_tx_fee_per_million = await tdex.takerTxFeePerMillion.call();
@@ -325,16 +320,22 @@ contract('TDEX', function() {
         price3_orders = await tdex.getOrderPriceDetails.call(11, 0, false);
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
-        //console.log("yyy", price1_orders, price2_orders, price3_orders, price4_orders);
 
         last_execute_price = await tdex.lastExecutionPrice.call();
-        //console.log("after trade last_execute_price", last_execute_price);
 
         assert.equal(user[4].num.sub(user[2].num).mul(million.sub(maker_tx_fee_per_million)).div(million).toString(10),
             user1_token_after.sub(user1_token_before).toString(10),"equal");
 
         assert.equal(user[4].num.sub(user[2].num).mul(last_execute_price).mul(million.sub(taker_tx_fee_per_million)).div(million).div(decimal).toString(10),
             user4_ttc_after.sub(user4_ttc_before).div(order_decimal).toString(10),"equal");
+
+
+        amount = await tdex.buyAmountByPrice.call(user[1].price.div(order_decimal)); // price = 0.011
+        assert.equal(amount.toString(10), 
+            (user[1].num).sub((user[4].num).sub(user[2].num)).toString(10), "equal");
+
+        amount = await tdex.sellAmountByPrice.call(user[4].price.div(order_decimal)); // price = 0.01
+        assert.equal(amount.toString(10), 0, "equal");
     });
 
 
