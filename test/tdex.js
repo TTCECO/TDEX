@@ -82,6 +82,9 @@ contract('TDEX', function() {
         order = await tdex.allBuyOrder.call(1);
         assert.equal(order[1].toString(10), user[1].num.toString(10), "equal");
         assert.equal(order[2].toString(10), user[1].price.div(order_decimal).toString(10), "equal");
+
+        amount = await tdex.buyAmountByPrice.call(order[2]);
+        assert.equal(amount.toString(10), user[1].num.toString(10), "equal");
     });
 
     it("try add buy order less than min token amount ",async () => {    
@@ -237,8 +240,10 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.addr, user[2].addr, "equal");
             assert.equal(info.logs[1].args.addr, user[4].addr, "equal");
 
-            assert.equal(info.logs[0].args.amount.toString(10),info.logs[1].args.amount.toString(10) , "equal");
-            assert.equal(info.logs[0].args.price.mul(order_decimal).toString(10), info.logs[1].args.price.mul(order_decimal).toString(10) , "equal");
+            assert.equal(info.logs[0].args.amount.toString(10),
+                info.logs[1].args.amount.toString(10) , "equal");
+            assert.equal(info.logs[0].args.price.mul(order_decimal).toString(10),
+                info.logs[1].args.price.mul(order_decimal).toString(10) , "equal");
 
         });
         user4_ttc_after = await web3.eth.getBalance(user[4].addr);
