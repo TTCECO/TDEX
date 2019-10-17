@@ -66,15 +66,15 @@ contract('TDEX', function() {
     it("user1 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
         await tdex.addBuyTokenOrder(user[1].num, user[1].price,{from:user[1].addr, to:tdex.address, value:user[1].ttc_num}).then(function(info){
-            console.log(info.logs[0].event);
-            console.log(info.logs[0].args);
-            console.log(info.logs[0].args.t);
-            console.log(info.logs[0].args.addr);
-            console.log(info.logs[0].args.index);
-            console.log(info.logs[0].args.amount);
-            console.log(info.logs[0].args.price);
-        });
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 1, "equal");
+            assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[1].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.mul(order_decimal).toString(10), user[1].price.toString(10) , "equal");
 
+            user[1].index = info.logs[0].args.index;
+            user[1].order_id = info.logs[0].args.orderID;
+        });
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price, user[1].price/order_decimal, "equal");
@@ -141,7 +141,17 @@ contract('TDEX', function() {
         const token = await TOKEN.deployed();
 
         // transfer token to user3 and user4
-        await tdex.addSellTokenOrder(user[3].num, user[3].price,{from:user[3].addr});
+        await tdex.addSellTokenOrder(user[3].num, user[3].price,{from:user[3].addr}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 2, "equal");
+            assert.equal(info.logs[0].args.addr, user[3].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[3].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.mul(order_decimal).toString(10), user[3].price.toString(10) , "equal");
+
+            user[3].index = info.logs[0].args.index;
+            user[3].order_id = info.logs[0].args.orderID;
+        });
+
 
         min_sell_price = await tdex.minSellPrice.call();
         assert.equal(min_sell_price, user[3].price/order_decimal, "equal");
@@ -215,15 +225,7 @@ contract('TDEX', function() {
         user2_token_before = await token.balanceOf.call(user[2].addr);
         // transfer token from user4 to user2
         await tdex.executeOrder({from:executer}).then(function(info){
-            console.log(info.logs);
-
-            console.log(info.logs[0].event);
-            console.log(info.logs[0].args);
-            console.log(info.logs[0].args.t);
-            console.log(info.logs[0].args.addr);
-            console.log(info.logs[0].args.index);
-            console.log(info.logs[0].args.amount);
-            console.log(info.logs[0].args.price);
+            //console.log(info.logs);
         });
         user4_ttc_after = await web3.eth.getBalance(user[4].addr);
         user2_token_after = await token.balanceOf.call(user[2].addr);
@@ -306,10 +308,9 @@ contract('TDEX', function() {
         const tdex = await TDEX.deployed();
 
         // transfer token to user3 and user4
-        order_index = await tdex.getOrderIndex(user[1].price/order_decimal, true, 1, 0, 10);
-        assert.equal(order_index, 0)
-
-        await tdex.cancelBuyOrder(1, order_index, {from:user[1].addr});
+        order_index = await tdex.getOrderIndex(user[1].price/order_decimal, true, user[1].order_id, 0, 10);
+        assert.equal(order_index.toString(10), user[1].index.toString(10));
+        await tdex.cancelBuyOrder(user[1].order_id, order_index, {from:user[1].addr});
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price.toString(10), user[5].price.div(order_decimal).toString(10),"equal");
@@ -325,10 +326,10 @@ contract('TDEX', function() {
         const token = await TOKEN.deployed();
 
         // transfer token to user3 and user4
-        order_index = await tdex.getOrderIndex(user[3].price/order_decimal, false, 3, 0, 10);
-        assert.equal(order_index, 0)
+        order_index = await tdex.getOrderIndex(user[3].price/order_decimal, false, user[3].order_id, 0, 10);
+        assert.equal(order_index.toString(10), user[3].index.toString(10))
 
-        await tdex.cancelSellOrder(3, order_index, {from:user[3].addr});
+        await tdex.cancelSellOrder(user[3].order_id, order_index, {from:user[3].addr});
 
         min_sell_price = await tdex.minSellPrice.call();
         assert.equal(min_sell_price, user[3].price/order_decimal, "equal");
