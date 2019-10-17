@@ -31,8 +31,8 @@ contract TDEX is PermissionGroups {
     mapping(uint => uint) public buyStartPos;           // price => start index of buyTokenOrderMap
     mapping(uint => uint) public sellStartPos;          // price => start index of sellTokenOrderMap
 
-    mapping(uint => uint) public buyAmountByPrice;             // price => amount
-    mapping(uint => uint) public sellAmountByPrice;            // price => amount
+    mapping(uint => uint) public buyAmountByPrice;      // price => amount
+    mapping(uint => uint) public sellAmountByPrice;     // price => amount
     
     uint public orderID = 0; // auto increase 
     mapping(uint => Order) public allBuyOrder;          // orderID => Order  
@@ -55,7 +55,7 @@ contract TDEX is PermissionGroups {
     // 6 - cancelSellOrder
     // 7 - refundExtraTTC
 
-
+    /* init address */
     function initAddressSettings(uint _type,address _addr) onlyAdmin public {
         require(_addr != address(0));
         if (_type == 1) {
@@ -65,32 +65,34 @@ contract TDEX is PermissionGroups {
         }  
     }
 
-    /*withdraw TTC by operator */
+    /* withdraw TTC by operator */
     function withdrawTTC() onlyAdmin public {
         require(adminWithdrawAddress.send(this.balance));
     }
     
-    /*withdraw Token by operator */
+    /* withdraw Token by operator */
     function withdrawToken() onlyAdmin public {
         MyToken.transfer(adminWithdrawAddress, MyToken.balanceOf(this));
     }
     
-    // set min token amount by operator 
+    /* set min token amount by operator */
     function setMinTokenAmount(uint _amount) onlyOperator public {
         minTokenAmount = _amount;
     } 
     
+    /* set maker tx fee, order id is smaller */
     function setMakerTxFee(uint _fee) onlyOperator public {
         require(_fee < million.div(2));
         makerTxFeePerMillion = _fee;
     }
-    
+
+    /* set taker tx fee, order id is larger */
     function setTakerTxFee(uint _fee) onlyOperator public {
         require(_fee < million.div(2));
         takerTxFeePerMillion = _fee;
     }
     
-    // return orderID     
+    /* add buy order, amount(wei), price (wei/ttc) */     
     function addBuyTokenOrder(uint _amount,uint _price) public payable {
         require(_amount >= minTokenAmount);
         _price = _price.div(10**orderDecimals);
@@ -117,7 +119,7 @@ contract TDEX is PermissionGroups {
      
     }
     
-    // return orderID 
+    /* add sell order, amount(wei), price (wei/ttc) */ 
     function addSellTokenOrder(uint _amount, uint _price) public {
         require(_amount >= minTokenAmount);
         _price = _price.div(10**orderDecimals);
@@ -141,6 +143,7 @@ contract TDEX is PermissionGroups {
         TE(2, msg.sender, orderID,sellTokenOrderMap[_price].length -1 ,_amount, _price);
     }
     
+    /* orders can execute exist */
     function existExecutionOrders() public view returns (bool) {
         if (minSellPrice <= maxBuyPrice) {
             return true;
@@ -149,15 +152,15 @@ contract TDEX is PermissionGroups {
         }
     }
     
+    /* execute order */
     function executeOrder() public {
         if (minSellPrice > maxBuyPrice) { 
             return;
         }
 
-        // deal  cancel orders 
+        //  
         uint maxBuyIndex = buyStartPos[maxBuyPrice];
         uint buyOrderID = 0;
-        uint buyPrice = maxBuyPrice;
         for (uint i = maxBuyIndex; i<maxBuyIndex + 10; i++) {
             buyStartPos[maxBuyPrice] = i;
             if (i >= buyTokenOrderMap[maxBuyPrice].length) {
@@ -170,13 +173,14 @@ contract TDEX is PermissionGroups {
                 break;
             }
         }
-
-        // just one step each time;
-        buyPrice = allBuyOrder[buyOrderID].price;
+        if (buyOrderID == 0) {
+            return;
+        }
+        uint buyPrice = allBuyOrder[buyOrderID].price;
         uint buyAmount = allBuyOrder[buyOrderID].amount;
+
         uint minSellIndex = sellStartPos[minSellPrice];
         uint sellOrderID = 0;
-        uint sellPrice = minSellPrice;
         for (i = minSellIndex; i<minSellIndex + 10; i++) {
             sellStartPos[minSellPrice] = i;
             if (i >= sellTokenOrderMap[minSellPrice].length) {
@@ -189,56 +193,61 @@ contract TDEX is PermissionGroups {
                 break;
             }
         }
-
-        sellPrice = allSellOrder[sellOrderID].price;
+        if (sellOrderID == 0) {
+            return;
+        }
+        uint sellPrice = allSellOrder[sellOrderID].price;
         uint sellAmount = allSellOrder[sellOrderID].amount;
         
-        if ( buyOrderID != 0 && sellOrderID != 0) {
+        // set buyer & seller
+        address buyer = allBuyOrder[buyOrderID].user;
+        address seller = allSellOrder[sellOrderID].user;
+        
+        // get maker & taker
+        if (buyOrderID > sellOrderID) {
+            // seller is maker 
+            TokenReceiverFee = takerTxFeePerMillion;
+            TTCReceiverFee = makerTxFeePerMillion;
+            lastExecutionPrice = sellPrice;
+        }else {
             // buyer is maker 
             uint TokenReceiverFee = makerTxFeePerMillion;
             uint TTCReceiverFee = takerTxFeePerMillion;
             lastExecutionPrice = buyPrice;
-            address buyer = allBuyOrder[buyOrderID].user;
-            address seller = allSellOrder[sellOrderID].user;
-            
-            if (buyOrderID > sellOrderID) {
-                // seller is maker 
-                TokenReceiverFee = takerTxFeePerMillion;
-                TTCReceiverFee = makerTxFeePerMillion;
-                lastExecutionPrice = sellPrice;
-            }
-            
-            uint executeAmount = buyAmount; 
-            if (buyAmount == sellAmount ) {
-                delete allSellOrder[sellOrderID];
-                delete allBuyOrder[buyOrderID];
-                buyStartPos[buyPrice] += 1;
-                sellStartPos[sellPrice] += 1;
-            } else if (buyAmount > sellAmount){
-                executeAmount = sellAmount;    
-                allBuyOrder[buyOrderID].amount -= executeAmount;
-                delete allSellOrder[sellOrderID];
-                sellStartPos[sellPrice] += 1;
-            } else {
-                allSellOrder[sellOrderID].amount -= executeAmount;
-                delete allBuyOrder[buyOrderID];
-                buyStartPos[buyPrice] += 1;
-            }
-            
-            buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(executeAmount);
-            sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(executeAmount);
-            
-            MyToken.transfer(buyer, executeAmount.mul(million.sub(TokenReceiverFee)).div(million));
-            require(seller.send(executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(million.sub(TTCReceiverFee)).div(million)));
-            
-            if (buyOrderID > sellOrderID && buyPrice > lastExecutionPrice) {
-                
-                refundExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice);
-            }
-            TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice);
-            TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice);
         }
         
+        // update data
+        uint executeAmount = buyAmount; 
+        if (buyAmount == sellAmount ) {
+            delete allSellOrder[sellOrderID];
+            delete allBuyOrder[buyOrderID];
+            buyStartPos[buyPrice] += 1;
+            sellStartPos[sellPrice] += 1;
+        } else if (buyAmount > sellAmount){
+            executeAmount = sellAmount;    
+            allBuyOrder[buyOrderID].amount -= executeAmount;
+            delete allSellOrder[sellOrderID];
+            sellStartPos[sellPrice] += 1;
+        } else {
+            allSellOrder[sellOrderID].amount -= executeAmount;
+            delete allBuyOrder[buyOrderID];
+            buyStartPos[buyPrice] += 1;
+        }
+        buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(executeAmount);
+        sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(executeAmount);
+        
+        // transfer      
+        MyToken.transfer(buyer, executeAmount.mul(million.sub(TokenReceiverFee)).div(million));
+        require(seller.send(executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(million.sub(TTCReceiverFee)).div(million)));
+        
+        // refund if needed
+        if (buyOrderID > sellOrderID && buyPrice > lastExecutionPrice) {
+            refundExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice);
+        }
+        TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice);
+        TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice);
+        
+        // clear empty data
         dealEmptyPrice(buyPrice, true);
         dealEmptyPrice(sellPrice, false);
     }
