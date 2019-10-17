@@ -96,7 +96,7 @@ contract TDEX is PermissionGroups {
     function addBuyTokenOrder(uint _amount,uint _price) public payable {
         require(_amount.mul(_price).div(10**decimals) >= minOrderValue);
         _price = _price.div(10**orderDecimals);
-        require(maxBuyPrice == 0 || maxBuyPrice < maxPriceRange ||  _price > maxBuyPrice - maxPriceRange );
+        require(lastExecutionPrice == 0 || lastExecutionPrice < maxPriceRange || _price > lastExecutionPrice - maxPriceRange );
         // make sure got enough TTC 
         require(msg.value >= _amount.mul(_price).div(10**(decimals-orderDecimals))); // TTC value
         // orderID auto increase
@@ -123,7 +123,7 @@ contract TDEX is PermissionGroups {
     function addSellTokenOrder(uint _amount, uint _price) public {
         require(_amount.mul(_price).div(10**decimals) >= minOrderValue);
         _price = _price.div(10**orderDecimals);
-        require(minSellPrice == 0 || _price < minSellPrice + maxPriceRange );
+        require(lastExecutionPrice == 0 || _price < lastExecutionPrice + maxPriceRange );
         MyToken.transferFrom(msg.sender, this, _amount);
         // orderID auto increase
         orderID += 1;
@@ -174,6 +174,7 @@ contract TDEX is PermissionGroups {
             }
         }
         if (buyOrderID == 0) {
+            dealEmptyPrice(maxBuyPrice, true); 
             return;
         }
         uint buyPrice = allBuyOrder[buyOrderID].price;
@@ -194,6 +195,7 @@ contract TDEX is PermissionGroups {
             }
         }
         if (sellOrderID == 0) {
+            dealEmptyPrice(minSellPrice, false); 
             return;
         }
         uint sellPrice = allSellOrder[sellOrderID].price;
@@ -263,11 +265,16 @@ contract TDEX is PermissionGroups {
             if (buyStartPos[_price] == buyTokenOrderMap[_price].length) {
                 delete buyStartPos[_price];
                 delete buyTokenOrderMap[_price];
-                
-                for( i= maxBuyPrice;i>0 ; i--){
-                    if (maxBuyPrice - maxPriceRange == i) {
+                for( i= maxBuyPrice;i >= 0 ; i--){
+                    if (maxBuyPrice - i == maxPriceRange ) {
+                        maxBuyPrice = i;
                         break;
                     }
+                    if (i == 0) {
+                        maxBuyPrice = 0;
+                        break;
+                    }
+
                     if (buyTokenOrderMap[i].length > 0) {
                         maxBuyPrice = i;
                         break;
@@ -278,7 +285,11 @@ contract TDEX is PermissionGroups {
             if (sellStartPos[_price] == sellTokenOrderMap[_price].length) {
                 delete sellStartPos[_price];
                 delete sellTokenOrderMap[_price];
-                for(uint i= minSellPrice;i<minSellPrice + maxPriceRange; i++){
+                for(uint i= minSellPrice;i <= minSellPrice + maxPriceRange; i++){
+                    if (minSellPrice == i - maxPriceRange) {
+                        minSellPrice = i;
+                        break;
+                    }
                     if (sellTokenOrderMap[i].length > 0) {
                         minSellPrice = i;
                         break;

@@ -366,9 +366,6 @@ contract('TDEX', function() {
 
         await tdex.cancelSellOrder(user[3].order_id, order_index, {from:user[3].addr});
 
-        min_sell_price = await tdex.minSellPrice.call();
-        assert.equal(min_sell_price, user[3].price/order_decimal, "equal");
-
         order = await tdex.allBuyOrder.call(3);
         assert.equal(order[1], 0, "equal");
         assert.equal(order[2], 0, "equal");
@@ -395,12 +392,12 @@ contract('TDEX', function() {
 
         user3_token_balance = await token.balanceOf.call(user[3].addr);
         assert.equal(user3_token_balance.toString(10), user[3].num.mul(20).sub(user[3].num).toString(10), "equal");
-        
+
     });
 
     it("user6 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder(user[2].num, user[6].price,{from:user[6].addr, to:tdex.address, value:user[6].ttc_num});
+        await tdex.addBuyTokenOrder(user[6].num, user[6].price,{from:user[6].addr, to:tdex.address, value:user[6].ttc_num});
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price.toString(10), user[6].price.div(order_decimal).toString(10), "equal");
@@ -408,6 +405,7 @@ contract('TDEX', function() {
         order = await tdex.allBuyOrder.call(7);
         assert.equal(order[1].toString(10), user[6].num.toString(10), "equal");
         assert.equal(order[2].toString(10), user[6].price.div(order_decimal).toString(10), "equal");
+
     });
 
     it("executer execute order after someone cancel",  async () =>  {
