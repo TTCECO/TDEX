@@ -226,6 +226,20 @@ contract('TDEX', function() {
         // transfer token from user4 to user2
         await tdex.executeOrder({from:executer}).then(function(info){
             //console.log(info.logs);
+            assert.equal(info.logs.length,2, "equal");
+
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[1].event, "TE", "equal");
+
+            assert.equal(info.logs[0].args.t, 3, "equal");
+            assert.equal(info.logs[1].args.t, 4, "equal");
+
+            assert.equal(info.logs[0].args.addr, user[2].addr, "equal");
+            assert.equal(info.logs[1].args.addr, user[4].addr, "equal");
+
+            assert.equal(info.logs[0].args.amount.toString(10),info.logs[1].args.amount.toString(10) , "equal");
+            assert.equal(info.logs[0].args.price.mul(order_decimal).toString(10), info.logs[1].args.price.mul(order_decimal).toString(10) , "equal");
+
         });
         user4_ttc_after = await web3.eth.getBalance(user[4].addr);
         user2_token_after = await token.balanceOf.call(user[2].addr);
