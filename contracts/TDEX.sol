@@ -65,17 +65,17 @@ contract TDEX is PermissionGroups {
         }  
     }
 
-    /* withdraw TTC by operator */
+    /* withdraw TTC by admin */
     function withdrawTTC() onlyAdmin public {
         require(adminWithdrawAddress.send(this.balance));
     }
     
-    /* withdraw Token by operator */
+    /* withdraw Token by admin */
     function withdrawToken() onlyAdmin public {
         MyToken.transfer(adminWithdrawAddress, MyToken.balanceOf(this));
     }
     
-    /* set min token amount by operator */
+    /* set min token amount by admin */
     function setMinOrderValue(uint _value) onlyOperator public {
         minOrderValue = _value;
     } 
