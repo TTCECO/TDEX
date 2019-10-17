@@ -38,7 +38,7 @@ contract TDEX is PermissionGroups {
     mapping(uint => Order) public allBuyOrder;          // orderID => Order  
     mapping(uint => Order) public allSellOrder;         // orderID => Order 
 
-    uint public minTokenAmount = 100*10**decimals;      // 100 token         
+    uint public minOrderValue = 2*10**decimals;         // 2 TTC         
     uint public makerTxFeePerMillion = 3000;            // 3/1000
     uint public takerTxFeePerMillion = 1000;            // 1/1000   
 
@@ -76,8 +76,8 @@ contract TDEX is PermissionGroups {
     }
     
     /* set min token amount by operator */
-    function setMinTokenAmount(uint _amount) onlyOperator public {
-        minTokenAmount = _amount;
+    function setMinOrderValue(uint _value) onlyOperator public {
+        minOrderValue = _value;
     } 
     
     /* set maker tx fee, order id is smaller */
@@ -94,7 +94,7 @@ contract TDEX is PermissionGroups {
     
     /* add buy order, amount(wei), price (wei/ttc) */     
     function addBuyTokenOrder(uint _amount,uint _price) public payable {
-        require(_amount >= minTokenAmount);
+        require(_amount.mul(_price).div(10**decimals) >= minOrderValue);
         _price = _price.div(10**orderDecimals);
         require(maxBuyPrice == 0 || maxBuyPrice < maxPriceRange ||  _price > maxBuyPrice - maxPriceRange );
         // make sure got enough TTC 
@@ -121,7 +121,7 @@ contract TDEX is PermissionGroups {
     
     /* add sell order, amount(wei), price (wei/ttc) */ 
     function addSellTokenOrder(uint _amount, uint _price) public {
-        require(_amount >= minTokenAmount);
+        require(_amount.mul(_price).div(10**decimals) >= minOrderValue);
         _price = _price.div(10**orderDecimals);
         require(minSellPrice == 0 || _price < minSellPrice + maxPriceRange );
         MyToken.transferFrom(msg.sender, this, _amount);

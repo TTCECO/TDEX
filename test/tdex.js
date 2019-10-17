@@ -89,7 +89,7 @@ contract('TDEX', function() {
 
     it("try add buy order less than min token amount ",async () => {    
         const tdex = await TDEX.deployed();
-        tdex.setMinTokenAmount(user[2].num * 2, {from:owner});
+        tdex.setMinOrderValue(user[2].ttc_num * 2, {from:owner});
         var gotErr = false;
         await tdex.addBuyTokenOrder(user[2].num, user[2].price,{from:user[2].addr, to:tdex.address, value:user[2].ttc_num}).catch(function(error) {
             gotErr = true;
@@ -97,7 +97,7 @@ contract('TDEX', function() {
             
         });
         assert.equal(gotErr, true, "equal");
-        await tdex.setMinTokenAmount(100*10**18, {from:owner});
+        await tdex.setMinOrderValue(2*10**18, {from:owner});
     });
 
     it("user2 buy token",  async () =>  {
