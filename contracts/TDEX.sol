@@ -345,11 +345,11 @@ contract TDEX is PermissionGroups {
         sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(sellAmount);
     }
         
-    function getOrderDetails(uint _orderID, bool _isBuyOrder) public view returns(Order){
+    function getOrderDetails(uint _orderID, bool _isBuyOrder) public view returns(address,uint,uint){
         if (_isBuyOrder){
-            return allBuyOrder[_orderID];
+            return (allBuyOrder[_orderID].user,allBuyOrder[_orderID].amount,allBuyOrder[_orderID].price);
         }else{
-            return allSellOrder[_orderID];
+            return (allSellOrder[_orderID].user,allSellOrder[_orderID].amount,allSellOrder[_orderID].price);
         }
     }
 
