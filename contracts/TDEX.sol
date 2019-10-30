@@ -18,7 +18,6 @@ contract TDEX is PermissionGroups {
         
     uint constant public decimals = 18;
     uint constant public orderDecimals = 15; 
-    uint constant public maxPriceRange = 30;
     uint constant public million = 10**6;
     
     uint public lastExecutionPrice = 0;                 // last execution price 
@@ -41,6 +40,7 @@ contract TDEX is PermissionGroups {
     uint public minOrderValue = 2*10**decimals;         // 2 TTC         
     uint public makerTxFeePerMillion = 3000;            // 3/1000
     uint public takerTxFeePerMillion = 1000;            // 1/1000   
+    uint public maxPriceRange = 30;
 
     address public adminWithdrawAddress;
     
@@ -75,6 +75,10 @@ contract TDEX is PermissionGroups {
         MyToken.transfer(adminWithdrawAddress, MyToken.balanceOf(this));
     }
     
+    function setMaxPriceRange(uint _value) onlyOperator public {
+        maxPriceRange = _value;   
+    }
+
     /* set min token amount by admin */
     function setMinOrderValue(uint _value) onlyOperator public {
         minOrderValue = _value;
