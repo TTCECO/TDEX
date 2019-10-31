@@ -70,7 +70,7 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.t, 1, "equal");
             assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
             assert.equal(info.logs[0].args.amount.toString(10), user[1].num.toString(10), "equal");
-            assert.equal(info.logs[0].args.price.mul(order_decimal).toString(10), user[1].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[1].price.toString(10) , "equal");
 
             user[1].index = info.logs[0].args.index;
             user[1].order_id = info.logs[0].args.orderID;
@@ -152,7 +152,7 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.t, 2, "equal");
             assert.equal(info.logs[0].args.addr, user[3].addr, "equal");
             assert.equal(info.logs[0].args.amount.toString(10), user[3].num.toString(10), "equal");
-            assert.equal(info.logs[0].args.price.mul(order_decimal).toString(10), user[3].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[3].price.toString(10) , "equal");
 
             user[3].index = info.logs[0].args.index;
             user[3].order_id = info.logs[0].args.orderID;
@@ -250,8 +250,8 @@ contract('TDEX', function() {
 
             assert.equal(info.logs[0].args.amount.toString(10),
                 info.logs[1].args.amount.toString(10) , "equal");
-            assert.equal(info.logs[0].args.price.mul(order_decimal).toString(10),
-                info.logs[1].args.price.mul(order_decimal).toString(10) , "equal");
+            assert.equal(info.logs[0].args.price.toString(10),
+                info.logs[1].args.price.toString(10) , "equal");
 
         });
         user4_ttc_after = await web3.eth.getBalance(user[4].addr);
