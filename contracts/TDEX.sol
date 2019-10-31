@@ -13,25 +13,25 @@ contract TDEX is PermissionGroups {
     struct Order {
         address user;
         uint amount;
-        uint price;
+        uint price;                                     // (wei/10**orderDecimals)
     }
         
     uint constant public decimals = 18;
     uint constant public orderDecimals = 15; 
     uint constant public million = 10**6;
     
-    uint public lastExecutionPrice = 0;                 // last execution price 
-    uint public maxBuyPrice = 0;                        // buy token by TTC 
-    uint public minSellPrice = 10**decimals;            // sell token 
+    uint public lastExecutionPrice = 0;                 // last execution price (wei/10**orderDecimals)
+    uint public maxBuyPrice = 0;                        // buy token by TTC (wei/10**orderDecimals)
+    uint public minSellPrice = 10**decimals;            // sell token (wei/10**orderDecimals)
     
-    mapping(uint => uint[]) public buyTokenOrderMap;    // price => orderID []
-    mapping(uint => uint[]) public sellTokenOrderMap;   // price => orderID []
+    mapping(uint => uint[]) public buyTokenOrderMap;    // price(wei/10**orderDecimals) => orderID []
+    mapping(uint => uint[]) public sellTokenOrderMap;   // price(wei/10**orderDecimals) => orderID []
     
-    mapping(uint => uint) public buyStartPos;           // price => start index of buyTokenOrderMap
-    mapping(uint => uint) public sellStartPos;          // price => start index of sellTokenOrderMap
+    mapping(uint => uint) public buyStartPos;           // price(wei/10**orderDecimals) => start index of buyTokenOrderMap
+    mapping(uint => uint) public sellStartPos;          // price(wei/10**orderDecimals) => start index of sellTokenOrderMap
 
-    mapping(uint => uint) public buyAmountByPrice;      // price => amount
-    mapping(uint => uint) public sellAmountByPrice;     // price => amount
+    mapping(uint => uint) public buyAmountByPrice;      // price(wei/10**orderDecimals) => amount
+    mapping(uint => uint) public sellAmountByPrice;     // price(wei/10**orderDecimals) => amount
     
     uint public orderID = 0; // auto increase 
     mapping(uint => Order) public allBuyOrder;          // orderID => Order  
@@ -178,7 +178,7 @@ contract TDEX is PermissionGroups {
             }
         }
         if (buyOrderID == 0) {
-            dealEmptyPrice(maxBuyPrice, true); 
+            dealEmptyPrice(maxBuyPrice.mul(10**orderDecimals), true); 
             return;
         }
         uint buyPrice = allBuyOrder[buyOrderID].price;
@@ -199,7 +199,7 @@ contract TDEX is PermissionGroups {
             }
         }
         if (sellOrderID == 0) {
-            dealEmptyPrice(minSellPrice, false); 
+            dealEmptyPrice(minSellPrice.mul(10**orderDecimals), false); 
             return;
         }
         uint sellPrice = allSellOrder[sellOrderID].price;
@@ -248,23 +248,24 @@ contract TDEX is PermissionGroups {
         
         // refund if needed
         if (buyOrderID > sellOrderID && buyPrice > lastExecutionPrice) {
-            refundExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice);
+            refundExtraTTC(buyer,executeAmount,buyPrice.mul(10**orderDecimals),lastExecutionPrice.mul(10**orderDecimals));
         }
         TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
         TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
         
         // clear empty data
-        dealEmptyPrice(buyPrice, true);
-        dealEmptyPrice(sellPrice, false);
+        dealEmptyPrice(buyPrice.mul(10**orderDecimals), true);
+        dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
     }
     
     function refundExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice) private {
         uint diffPrice = _buyPrice.sub(_lastPrice);
-        require(_buyer.send(_amount.mul(diffPrice).div(10**(decimals-orderDecimals))));
+        require(_buyer.send(_amount.mul(diffPrice).div(10**decimals)));
         TE(7, _buyer,0,0, _amount, diffPrice.mul(10**orderDecimals));
     }
 
     function dealEmptyPrice(uint _price, bool _isBuyOrder ) public {
+        _price = _price.div(10**orderDecimals);
         if (_isBuyOrder) {
             if (buyStartPos[_price] == buyTokenOrderMap[_price].length) {
                 delete buyStartPos[_price];
@@ -320,7 +321,7 @@ contract TDEX is PermissionGroups {
             buyStartPos[buyPrice] = _index + 1;
         }
 
-        dealEmptyPrice(buyPrice, true);
+        dealEmptyPrice(buyPrice.mul(10**orderDecimals), true);
         delete allBuyOrder[_orderID];
         
         TE(5, msg.sender,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals));
@@ -342,7 +343,7 @@ contract TDEX is PermissionGroups {
             sellStartPos[sellPrice] = _index + 1;
         }
 
-        dealEmptyPrice(sellPrice, false);
+        dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
         delete allSellOrder[_orderID];
         
         TE(6, msg.sender,_orderID, _index, sellAmount, sellPrice.mul(10**orderDecimals));
@@ -351,13 +352,14 @@ contract TDEX is PermissionGroups {
         
     function getOrderDetails(uint _orderID, bool _isBuyOrder) public view returns(address,uint,uint){
         if (_isBuyOrder){
-            return (allBuyOrder[_orderID].user,allBuyOrder[_orderID].amount,allBuyOrder[_orderID].price);
+            return (allBuyOrder[_orderID].user,allBuyOrder[_orderID].amount,allBuyOrder[_orderID].price.mul(10**orderDecimals));
         }else{
-            return (allSellOrder[_orderID].user,allSellOrder[_orderID].amount,allSellOrder[_orderID].price);
+            return (allSellOrder[_orderID].user,allSellOrder[_orderID].amount,allSellOrder[_orderID].price.mul(10**orderDecimals));
         }
     }
 
     function getOrderPriceDetails(uint _price, uint _index, bool _isBuyOrder) public view returns(uint){
+        _price = _price.div(10**orderDecimals);
         if (_isBuyOrder ){
             if (_index < buyTokenOrderMap[_price].length) {
                     return buyTokenOrderMap[_price][_index];
@@ -375,6 +377,7 @@ contract TDEX is PermissionGroups {
     }
     
     function getOrderIndex(uint _price, bool _isBuyOrder, uint _targetOrderID, uint _start, uint _len) public view returns(uint){
+        _price = _price.div(10**orderDecimals);
         if (_isBuyOrder){
             for(uint i=_start; i < _start + _len ; i++){
                 if (buyTokenOrderMap[_price][i] == _targetOrderID) {
@@ -393,6 +396,7 @@ contract TDEX is PermissionGroups {
     }
 
     function getOrderLengthByPrice(uint _price, bool _isBuyOrder) public view returns(uint) {
+        _price = _price.div(10**orderDecimals);
         if (_isBuyOrder){
             return buyTokenOrderMap[_price].length; 
         }else{

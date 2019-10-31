@@ -343,7 +343,7 @@ contract('TDEX', function() {
         const tdex = await TDEX.deployed();
 
         // transfer token to user3 and user4
-        order_index = await tdex.getOrderIndex(user[1].price/order_decimal, true, user[1].order_id, 0, 10);
+        order_index = await tdex.getOrderIndex(user[1].price, true, user[1].order_id, 0, 10);
         assert.equal(order_index.toString(10), user[1].index.toString(10));
         await tdex.cancelBuyOrder(user[1].order_id, order_index, {from:user[1].addr});
 
@@ -361,7 +361,7 @@ contract('TDEX', function() {
         const token = await TOKEN.deployed();
 
         // transfer token to user3 and user4
-        order_index = await tdex.getOrderIndex(user[3].price/order_decimal, false, user[3].order_id, 0, 10);
+        order_index = await tdex.getOrderIndex(user[3].price, false, user[3].order_id, 0, 10);
         assert.equal(order_index.toString(10), user[3].index.toString(10))
 
         await tdex.cancelSellOrder(user[3].order_id, order_index, {from:user[3].addr});
@@ -464,7 +464,7 @@ contract('TDEX', function() {
             await tdex.addSellTokenOrder(user[3].num, user[3].price,{from:user[3].addr});
         }
         for (i = 8; i < 19; i++) { 
-            order_index = await tdex.getOrderIndex(user[3].price/order_decimal, false, i, 0, 20);
+            order_index = await tdex.getOrderIndex(user[3].price, false, i, 0, 20);
             await tdex.cancelSellOrder(i, order_index, {from:user[3].addr});
         }
 
