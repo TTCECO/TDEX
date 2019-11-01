@@ -127,7 +127,7 @@ contract TDEX is PermissionGroups {
     function addSellTokenOrder(uint _amount, uint _price) public {
         require(_amount.mul(_price).div(10**decimals) >= minOrderValue);
         _price = _price.div(10**orderDecimals);
-        require(lastExecutionPrice == 0 || _price < lastExecutionPrice + maxPriceRange );
+        require(lastExecutionPrice == 0 || _price < lastExecutionPrice.add(maxPriceRange));
         MyToken.transferFrom(msg.sender, this, _amount);
         // orderID auto increase
         orderID += 1;
@@ -209,6 +209,8 @@ contract TDEX is PermissionGroups {
         address buyer = allBuyOrder[buyOrderID].user;
         address seller = allSellOrder[sellOrderID].user;
         
+        uint TokenReceiverFee;
+        uint TTCReceiverFee;
         // get maker & taker
         if (buyOrderID > sellOrderID) {
             // seller is maker 
@@ -217,8 +219,8 @@ contract TDEX is PermissionGroups {
             lastExecutionPrice = sellPrice;
         }else {
             // buyer is maker 
-            uint TokenReceiverFee = makerTxFeePerMillion;
-            uint TTCReceiverFee = takerTxFeePerMillion;
+            TokenReceiverFee = makerTxFeePerMillion;
+            TTCReceiverFee = takerTxFeePerMillion;
             lastExecutionPrice = buyPrice;
         }
         
@@ -290,7 +292,7 @@ contract TDEX is PermissionGroups {
             if (sellStartPos[_price] == sellTokenOrderMap[_price].length) {
                 delete sellStartPos[_price];
                 delete sellTokenOrderMap[_price];
-                for(uint i= minSellPrice;i <= minSellPrice + maxPriceRange; i++){
+                for(uint i= minSellPrice;i <= minSellPrice.add(maxPriceRange); i++){
                     if (minSellPrice == i - maxPriceRange) {
                         minSellPrice = i;
                         break;
