@@ -38,8 +38,8 @@ contract TDEX is PermissionGroups {
     mapping(uint => Order) public allSellOrder;         // orderID => Order 
 
     uint public minOrderValue = 2*10**decimals;         // 2 TTC         
-    uint public makerTxFeePerMillion = 3000;            // 3/1000
-    uint public takerTxFeePerMillion = 1000;            // 1/1000   
+    uint public makerTxFeePerMillion = 0;		//1000;            // 1/1000
+    uint public takerTxFeePerMillion = 0;		//3000;            // 3/1000   
     uint public maxPriceRange = 30;
 
     address public adminWithdrawAddress;
