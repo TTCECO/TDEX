@@ -17,7 +17,7 @@ contract TDEX is PermissionGroups {
     }
         
     uint constant public decimals = 18;
-    uint constant public orderDecimals = 15; 
+    uint constant public orderDecimals = 15;            // CUSD-16 CCNY-15 CKRW-14 ACN-14 CLAY-14
     uint constant public million = 10**6;
     
     uint public lastExecutionPrice = 0;                 // last execution price (wei/10**orderDecimals)
@@ -40,7 +40,7 @@ contract TDEX is PermissionGroups {
     uint public minOrderValue = 2*10**decimals;         // 2 TTC         
     uint public makerTxFeePerMillion = 0;		//1000;            // 1/1000
     uint public takerTxFeePerMillion = 0;		//3000;            // 3/1000   
-    uint public maxPriceRange = 30;
+    uint public maxPriceRange = 3000;
 
     address public adminWithdrawAddress;
     
