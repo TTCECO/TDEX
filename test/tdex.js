@@ -53,6 +53,22 @@ contract('TDEX', function() {
     	});
   	});
 
+    it("update order decimal ",async () => {
+        const tdex = await TDEX.deployed();
+        od = await tdex.orderDecimals.call();
+        if (od.toNumber() == 13 ) {
+            order_decimal = new web3.BigNumber('10000000000000');
+        }else if (od.toNumber() == 14 ){
+            order_decimal = new web3.BigNumber('100000000000000');
+        }else if (od.toNumber() == 15 ){
+            order_decimal = new web3.BigNumber('1000000000000000');
+        }else if (od.toNumber() == 16 ){
+            order_decimal = new web3.BigNumber('10000000000000000');
+        }else if (od.toNumber() == 17 ){
+            order_decimal = new web3.BigNumber('100000000000000000');
+        }
+    });
+
     it("add token for tdex",  async () =>  {
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
