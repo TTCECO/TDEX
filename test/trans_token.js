@@ -76,7 +76,7 @@ contract('TransToken', function() {
         const tt = await TransToken.deployed();
         const token = await TOKEN.deployed();
 
-        await tt.transferTokenO(user3, decimal.mul(100),{from:user2}).then(function(info){
+        await tt.transferToken(user3, decimal.mul(100),{from:user2}).then(function(info){
             assert.equal(info.logs[0].event, "TT", "equal");
             assert.equal(info.logs[0].args.t, 1, "equal");
             assert.equal(info.logs[0].args.addrFrom, user2, "equal");

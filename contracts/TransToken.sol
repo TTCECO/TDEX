@@ -46,7 +46,7 @@ contract TransToken is PermissionGroups {
     }
 
     /* add sell order, amount(wei) */ 
-    function transferTokenO(address _target,uint _amount) public {
+    function transferToken(address _target,uint _amount) public {
         require(_amount >= minTransValue);
         require(_target != address(0));
         require(MyToken.balanceOf(msg.sender) >= _amount.add(transFee));
