@@ -100,7 +100,7 @@ contract TDEX is PermissionGroups {
     function addBuyTokenOrder(uint _amount,uint _price) public payable {
         require(_amount.mul(_price).div(10**decimals) >= minOrderValue);
         _price = _price.div(10**orderDecimals);
-        require(lastExecutionPrice == 0 || lastExecutionPrice < maxPriceRange || _price > lastExecutionPrice - maxPriceRange );
+        require(lastExecutionPrice == 0 || lastExecutionPrice < maxPriceRange || _price > lastExecutionPrice.sub(maxPriceRange) );
         // make sure got enough TTC 
         require(msg.value >= _amount.mul(_price).div(10**(decimals-orderDecimals))); // TTC value
         // orderID auto increase
