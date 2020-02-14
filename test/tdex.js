@@ -552,4 +552,58 @@ contract('TDEX', function() {
                     owner_ttc_after.add(contract_ttc_after).add(gas_v).toString(10),
                     "equal");
     });
+
+    it("reset maxPriceRange",  async () =>  {
+        const tdex = await TDEX.deployed();
+        const token = await TOKEN.deployed();
+
+        max_price_range = await tdex.maxPriceRange.call();
+        //console.log("max_price_range" , max_price_range.toNumber())
+        target_value = max_price_range.toNumber() -290 ;
+        //console.log("target_value",target_value)
+        await tdex.setMaxPriceRange(target_value, {from:owner});
+        max_price_range = await tdex.maxPriceRange.call();
+        //console.log("max_price_range" , max_price_range.toNumber())
+        assert.equal(max_price_range.toNumber(), target_value, "equal");
+    });
+
+
+    it("try add orders beyond price range",async () => {    
+        const tdex = await TDEX.deployed();
+        max_price_range = await tdex.maxPriceRange.call();
+        last_execute_price = await tdex.lastExecutionPrice.call();
+
+        //console.log("max_price_range", max_price_range);
+        //console.log("max_price_range by wei", order_decimal.mul(max_price_range).toString());
+        //console.log("last_execute_price", order_decimal.mul(last_execute_price).toString());
+        
+        ttc_num = 200;
+        num = decimal.mul(ttc_num);
+        // add buy order fail
+        beyond_price = order_decimal.mul(last_execute_price).add(order_decimal.mul(max_price_range));
+        //console.log("beyond_price",beyond_price.toString());
+        beyond_value = beyond_price.mul(ttc_num);
+        //console.log("beyong_value",beyond_value.toString());
+
+        ok_price = beyond_price.sub(order_decimal);
+        ok_value = ok_price.mul(ttc_num);
+        //console.log("ok_price",ok_price.toString());
+        var gotErr = false;
+        await tdex.addBuyTokenOrder(num, beyond_price,{from:owner, to:tdex.address, value:beyond_value}).catch(function(error) {
+            gotErr = true;
+            assert(error.toString().includes('Error: VM Exception while processing transaction: revert'), error.toString())           
+        });
+        assert.equal(gotErr, true, "equal");
+
+        // add buy order success
+        await tdex.addBuyTokenOrder(num, ok_price,{from:owner, to:tdex.address, value:ok_value}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 1, "equal");
+            assert.equal(info.logs[0].args.addr, owner, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.toString(10), ok_price.toString(10) , "equal");
+        });
+    });
+
+
 });
