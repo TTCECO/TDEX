@@ -567,6 +567,20 @@ contract('TDEX', function() {
         assert.equal(max_price_range.toNumber(), target_value, "equal");
     });
 
+    it("operator auth", async () => {
+        const tdex = await TDEX.deployed();
+        const token = await TOKEN.deployed();
+        max_price_range = await tdex.maxPriceRange.call();
+        var gotErr = false;
+        await tdex.setMaxPriceRange(max_price_range,{from:user[6].addr}).catch(function(error) {
+            gotErr = true;
+            assert(error.toString().includes('Error: VM Exception while processing transaction: revert'), error.toString())           
+        });
+        assert.equal(gotErr, true, "equal");
+        await tdex.addOperator(user[6].addr,{from:owner});
+        await tdex.setMaxPriceRange(max_price_range,{from:user[6].addr})
+    });
+
 
     it("try add orders beyond price range",async () => {    
         const tdex = await TDEX.deployed();
