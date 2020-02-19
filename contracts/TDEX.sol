@@ -122,7 +122,7 @@ contract TDEX is PermissionGroups {
             maxBuyPrice = _price;
         }
         buyAmountByPrice[_price] = buyAmountByPrice[_price].add(_amount);
-        emit TE(1, msg.sender, orderID,buyTokenOrderMap[_price].length - 1, _amount, _price.mul(10**orderDecimals));
+        TE(1, msg.sender, orderID,buyTokenOrderMap[_price].length - 1, _amount, _price.mul(10**orderDecimals));
 
     }
 
@@ -153,7 +153,7 @@ contract TDEX is PermissionGroups {
             minSellPrice = _price;
         }
         sellAmountByPrice[_price] = sellAmountByPrice[_price].add(_amount);
-        emit TE(2, msg.sender, orderID,sellTokenOrderMap[_price].length - 1, _amount, _price.mul(10**orderDecimals));
+        TE(2, msg.sender, orderID,sellTokenOrderMap[_price].length - 1, _amount, _price.mul(10**orderDecimals));
     }
 
     /* orders can execute exist */
@@ -261,8 +261,8 @@ contract TDEX is PermissionGroups {
         if (buyOrderID > sellOrderID && buyPrice > lastExecutionPrice) {
             refundExtraTTC(buyer,executeAmount,buyPrice.mul(10**orderDecimals),lastExecutionPrice.mul(10**orderDecimals));
         }
-        emit TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
-        emit TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
+        TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
+        TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
 
         // clear empty data
         dealEmptyPrice(buyPrice.mul(10**orderDecimals), true);
@@ -272,7 +272,7 @@ contract TDEX is PermissionGroups {
     function refundExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice) private {
         uint diffPrice = _buyPrice.sub(_lastPrice);
         require(_buyer.send(_amount.mul(diffPrice).div(10**decimals)));
-        emit TE(7, _buyer,0,0, _amount, diffPrice);
+        TE(7, _buyer,0,0, _amount, diffPrice);
     }
 
     function dealEmptyPrice(uint _price, bool _isBuyOrder ) public {
@@ -335,7 +335,7 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(buyPrice.mul(10**orderDecimals), true);
         delete allBuyOrder[_orderID];
 
-        emit TE(5, msg.sender,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals));
+        TE(5, msg.sender,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals));
         buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(buyAmount);
     }
 
@@ -357,7 +357,7 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
         delete allSellOrder[_orderID];
 
-        emit TE(6, msg.sender,_orderID, _index, sellAmount, sellPrice.mul(10**orderDecimals));
+        TE(6, msg.sender,_orderID, _index, sellAmount, sellPrice.mul(10**orderDecimals));
         sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(sellAmount);
     }
 
