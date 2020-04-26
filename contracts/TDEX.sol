@@ -315,9 +315,21 @@ contract TDEX is PermissionGroups {
         }
     }
 
+    function adminCancelOrder(bool _buy, uint _orderID, uint _index) public onlyAdmin{
+        if (_buy == true)  {
+            cancelBuy(_orderID,_index);
+        }else {
+            cancelSell(_orderID, _index);
+        }
+    }
 
     function cancelBuyOrder(uint _orderID, uint _index) public {
         require(allBuyOrder[_orderID].user == msg.sender);
+        cancelBuy(_orderID,_index);
+    }
+
+    function cancelBuy(uint _orderID, uint _index) internal {
+        address orderOwner = allBuyOrder[_orderID].user;
         uint buyPrice = allBuyOrder[_orderID].price;
         uint buyAmount = allBuyOrder[_orderID].amount;
         require(buyTokenOrderMap[buyPrice][_index] == _orderID && allBuyOrder[_orderID].amount > 0);
@@ -335,12 +347,16 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(buyPrice.mul(10**orderDecimals), true);
         delete allBuyOrder[_orderID];
 
-        TE(5, msg.sender,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals));
+        TE(5, orderOwner ,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals));
         buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(buyAmount);
     }
 
     function cancelSellOrder(uint _orderID, uint _index) public {
         require(allSellOrder[_orderID].user == msg.sender);
+        cancelSell( _orderID, _index);
+    }
+    function cancelSell(uint _orderID, uint _index) internal {
+        address orderOwner = allSellOrder[_orderID].user;
         uint sellPrice = allSellOrder[_orderID].price;
         uint sellAmount = allSellOrder[_orderID].amount;
         require(sellTokenOrderMap[sellPrice][_index] == _orderID && allSellOrder[_orderID].amount > 0);
@@ -357,7 +373,7 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
         delete allSellOrder[_orderID];
 
-        TE(6, msg.sender,_orderID, _index, sellAmount, sellPrice.mul(10**orderDecimals));
+        TE(6, orderOwner,_orderID, _index, sellAmount, sellPrice.mul(10**orderDecimals));
         sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(sellAmount);
     }
 
@@ -415,3 +431,4 @@ contract TDEX is PermissionGroups {
         return 0;
     }
 }
+
