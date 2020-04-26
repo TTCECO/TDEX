@@ -358,7 +358,7 @@ contract('TDEX', function() {
     it("user1 cancel order",  async () =>  {
         const tdex = await TDEX.deployed();
 
-        // transfer token to user3 and user4
+        // 
         order_index = await tdex.getOrderIndex(user[1].price, true, user[1].order_id, 0, 10);
         assert.equal(order_index.toString(10), user[1].index.toString(10));
         await tdex.cancelBuyOrder(user[1].order_id, order_index, {from:user[1].addr});
@@ -376,7 +376,7 @@ contract('TDEX', function() {
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
 
-        // transfer token to user3 and user4
+        // 
         order_index = await tdex.getOrderIndex(user[3].price, false, user[3].order_id, 0, 10);
         assert.equal(order_index.toString(10), user[3].index.toString(10))
 
@@ -396,7 +396,7 @@ contract('TDEX', function() {
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
 
-        // transfer token to user3 and user4
+        // 
         await tdex.addSellTokenOrder(user[3].num, user[3].price,{from:user[3].addr});
 
         min_sell_price = await tdex.minSellPrice.call();
@@ -617,6 +617,59 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.amount.toString(10), num.toString(10), "equal");
             assert.equal(info.logs[0].args.price.toString(10), ok_price.toString(10) , "equal");
         });
+    });
+
+
+    it("re-add buy order to tdex && cancel order by admin",  async () =>  {
+        const tdex = await TDEX.deployed();
+        await tdex.addBuyTokenOrder(user[1].num, user[1].price,{from:user[1].addr, to:tdex.address, value:user[1].ttc_num}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 1, "equal");
+            assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[1].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[1].price.toString(10) , "equal");
+
+            user[1].index = info.logs[0].args.index;
+            user[1].order_id = info.logs[0].args.orderID;
+        });
+
+        isBuy = true;
+        await tdex.adminCancelOrder(isBuy,user[1].order_id, user[1].index, {from:owner}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 5, "equal");
+            assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[1].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[1].price.toString(10) , "equal");
+
+        });
+
+    });
+
+
+    it("re-add sell order to tdex && cancel order by admin",  async () =>  {
+        const tdex = await TDEX.deployed();
+
+        await tdex.addSellTokenOrder(user[3].num, user[3].price,{from:user[3].addr}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 2, "equal");
+            assert.equal(info.logs[0].args.addr, user[3].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[3].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[3].price.toString(10) , "equal");
+
+            user[3].index = info.logs[0].args.index;
+            user[3].order_id = info.logs[0].args.orderID;
+        });
+
+        isBuy = false;
+        await tdex.adminCancelOrder(isBuy,user[3].order_id, user[3].index, {from:owner}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 6, "equal");
+            assert.equal(info.logs[0].args.addr, user[3].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[3].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[3].price.toString(10) , "equal");
+
+        });
+
     });
 
 
