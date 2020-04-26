@@ -82,13 +82,13 @@ contract TDEX is PermissionGroups {
 
     /* set maker tx fee, order id is smaller */
     function setMakerTxFee(uint _fee) public onlyOperator {
-        require(_fee < million.div(2));
+        require(_fee <= takerTxFeePerMillion);
         makerTxFeePerMillion = _fee;
     }
 
     /* set taker tx fee, order id is larger */
     function setTakerTxFee(uint _fee) public onlyOperator {
-        require(_fee < million.div(2));
+        require(_fee < million.div(2) && _fee >= makerTxFeePerMillion);
         takerTxFeePerMillion = _fee;
     }
 
