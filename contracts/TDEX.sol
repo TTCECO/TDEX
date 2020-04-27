@@ -338,9 +338,11 @@ contract TDEX is PermissionGroups {
         uint buyPrice = allBuyOrder[_orderID].price;
         uint buyAmount = allBuyOrder[_orderID].amount;
         require(buyTokenOrderMap[buyPrice][_index] == _orderID && allBuyOrder[_orderID].amount > 0);
+        
+        uint value = buyAmount.mul(buyPrice).div(10**(decimals-orderDecimals)).add(allBuyOrder[_orderID].withhold);
         allBuyOrder[_orderID].amount = 0; // for reentrancy
-
-        uint value = buyAmount.mul(buyPrice).div(10**(decimals-orderDecimals));
+        allBuyOrder[_orderID].withhold = 0; // for reentrancy
+        
         require(allBuyOrder[_orderID].user.send(value));
         buyTokenOrderMap[buyPrice][_index] = 0;
         if (_index == 0){
@@ -355,6 +357,7 @@ contract TDEX is PermissionGroups {
         TE(5, orderOwner ,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals));
         buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(buyAmount);
     }
+
 
     function cancelSellOrder(uint _orderID, uint _index) public {
         require(allSellOrder[_orderID].user == msg.sender);
