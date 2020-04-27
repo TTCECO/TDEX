@@ -169,14 +169,27 @@ contract TDEX is PermissionGroups {
             return false;
         }
     }
-
-    /* execute order */
-    function executeOrder() public {
-        if (minSellPrice > maxBuyPrice) {
-            return;
+    
+    
+    function querySellOrderID() internal returns (uint){
+        uint minSellIndex = sellStartPos[minSellPrice];
+        uint sellOrderID = 0;
+        for (uint i = minSellIndex; i<minSellIndex + 10; i++) {
+            sellStartPos[minSellPrice] = i;
+            if (i >= sellTokenOrderMap[minSellPrice].length) {
+                break;
+            }
+            if (sellTokenOrderMap[minSellPrice][i] == 0) {
+                continue;
+            }else {
+                sellOrderID = sellTokenOrderMap[minSellPrice][i];
+                break;
+            }
         }
-
-
+        return sellOrderID;
+    }
+    
+    function queryBuyOrderID() internal returns (uint) {
         uint maxBuyIndex = buyStartPos[maxBuyPrice];
         uint buyOrderID = 0;
         for (uint i = maxBuyIndex; i<maxBuyIndex + 10; i++) {
@@ -191,6 +204,16 @@ contract TDEX is PermissionGroups {
                 break;
             }
         }
+        return buyOrderID;
+    }
+
+    /* execute order */
+    function executeOrder() public {
+        if (minSellPrice > maxBuyPrice) {
+            return;
+        }
+
+        uint buyOrderID = queryBuyOrderID();
         if (buyOrderID == 0) {
             dealEmptyPrice(maxBuyPrice.mul(10**orderDecimals), true);
             return;
@@ -198,20 +221,7 @@ contract TDEX is PermissionGroups {
         uint buyPrice = allBuyOrder[buyOrderID].price;
         uint buyAmount = allBuyOrder[buyOrderID].amount;
 
-        uint minSellIndex = sellStartPos[minSellPrice];
-        uint sellOrderID = 0;
-        for (i = minSellIndex; i<minSellIndex + 10; i++) {
-            sellStartPos[minSellPrice] = i;
-            if (i >= sellTokenOrderMap[minSellPrice].length) {
-                break;
-            }
-            if (sellTokenOrderMap[minSellPrice][i] == 0) {
-                continue;
-            }else {
-                sellOrderID = sellTokenOrderMap[minSellPrice][i];
-                break;
-            }
-        }
+        uint sellOrderID = querySellOrderID();
         if (sellOrderID == 0) {
             dealEmptyPrice(minSellPrice.mul(10**orderDecimals), false);
             return;
