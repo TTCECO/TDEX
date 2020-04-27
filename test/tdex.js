@@ -81,7 +81,7 @@ contract('TDEX', function() {
 
     it("user1 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder(user[1].num, user[1].price,{from:user[1].addr, to:tdex.address, value:user[1].ttc_num}).then(function(info){
+        await tdex.addBuyTokenOrder( user[1].price,{from:user[1].addr, to:tdex.address, value:user[1].ttc_num}).then(function(info){
             assert.equal(info.logs[0].event, "TE", "equal");
             assert.equal(info.logs[0].args.t, 1, "equal");
             assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
@@ -107,7 +107,7 @@ contract('TDEX', function() {
         const tdex = await TDEX.deployed();
         tdex.setMinOrderValue(user[2].ttc_num * 2, {from:owner});
         var gotErr = false;
-        await tdex.addBuyTokenOrder(user[2].num, user[2].price,{from:user[2].addr, to:tdex.address, value:user[2].ttc_num}).catch(function(error) {
+        await tdex.addBuyTokenOrder( user[2].price,{from:user[2].addr, to:tdex.address, value:user[2].ttc_num}).catch(function(error) {
             gotErr = true;
             assert(error.toString().includes('Error: VM Exception while processing transaction: revert'), error.toString())
             
@@ -118,7 +118,7 @@ contract('TDEX', function() {
 
     it("user2 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder(user[2].num, user[2].price,{from:user[2].addr, to:tdex.address, value:user[2].ttc_num});
+        await tdex.addBuyTokenOrder(user[2].price,{from:user[2].addr, to:tdex.address, value:user[2].ttc_num});
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price, user[2].price/order_decimal, "equal");
@@ -211,7 +211,7 @@ contract('TDEX', function() {
 
     it("user5 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder(user[5].num, user[5].price,{from:user[5].addr, to:tdex.address, value:user[5].ttc_num});
+        await tdex.addBuyTokenOrder(user[5].price,{from:user[5].addr, to:tdex.address, value:user[5].ttc_num});
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price.toString(10), user[2].price.div(order_decimal).toString(10), "equal");
@@ -413,7 +413,7 @@ contract('TDEX', function() {
 
     it("user6 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder(user[6].num, user[6].price,{from:user[6].addr, to:tdex.address, value:user[6].ttc_num});
+        await tdex.addBuyTokenOrder( user[6].price,{from:user[6].addr, to:tdex.address, value:user[6].ttc_num});
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price.toString(10), user[6].price.div(order_decimal).toString(10), "equal");
@@ -485,7 +485,7 @@ contract('TDEX', function() {
         }
 
         // user6 buy order_id(19)
-        await tdex.addBuyTokenOrder(user[6].num, user[6].price,{from:user[6].addr, to:tdex.address, value:user[6].ttc_num});
+        await tdex.addBuyTokenOrder( user[6].price,{from:user[6].addr, to:tdex.address, value:user[6].ttc_num});
         
         await tdex.executeOrder({from:executer});
 
@@ -603,14 +603,14 @@ contract('TDEX', function() {
         ok_value = ok_price.mul(ttc_num);
         //console.log("ok_price",ok_price.toString());
         var gotErr = false;
-        await tdex.addBuyTokenOrder(num, beyond_price,{from:owner, to:tdex.address, value:beyond_value}).catch(function(error) {
+        await tdex.addBuyTokenOrder(beyond_price,{from:owner, to:tdex.address, value:beyond_value}).catch(function(error) {
             gotErr = true;
             assert(error.toString().includes('Error: VM Exception while processing transaction: revert'), error.toString())           
         });
         assert.equal(gotErr, true, "equal");
 
         // add buy order success
-        await tdex.addBuyTokenOrder(num, ok_price,{from:owner, to:tdex.address, value:ok_value}).then(function(info){
+        await tdex.addBuyTokenOrder( ok_price,{from:owner, to:tdex.address, value:ok_value}).then(function(info){
             assert.equal(info.logs[0].event, "TE", "equal");
             assert.equal(info.logs[0].args.t, 1, "equal");
             assert.equal(info.logs[0].args.addr, owner, "equal");
@@ -622,7 +622,7 @@ contract('TDEX', function() {
 
     it("re-add buy order to tdex && cancel order by admin",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder(user[1].num, user[1].price,{from:user[1].addr, to:tdex.address, value:user[1].ttc_num}).then(function(info){
+        await tdex.addBuyTokenOrder( user[1].price,{from:user[1].addr, to:tdex.address, value:user[1].ttc_num}).then(function(info){
             assert.equal(info.logs[0].event, "TE", "equal");
             assert.equal(info.logs[0].args.t, 1, "equal");
             assert.equal(info.logs[0].args.addr, user[1].addr, "equal");

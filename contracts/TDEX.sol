@@ -92,11 +92,13 @@ contract TDEX is PermissionGroups {
         takerTxFeePerMillion = _fee;
     }
 
-    /* add buy order, amount(wei), price (wei/ttc) */
-    function addBuyTokenOrder(uint _amount,uint _price) public payable {
-        require(_amount.mul(_price).div(10**decimals) >= minOrderValue);
+    /* add buy order, price (wei/ttc) */
+    function addBuyTokenOrder(uint _price) public payable {
+        require(msg.value >= minOrderValue);
+        // calculate _amount by msg.value / _price 
+        uint _amount = msg.value.mul(10**decimals).div(_price);
+        
         _price = _price.div(10**orderDecimals);
-
         if (lastExecutionPrice != 0) {
             require(_price < lastExecutionPrice.add(maxPriceRange));
             if (lastExecutionPrice > maxPriceRange){
@@ -104,8 +106,6 @@ contract TDEX is PermissionGroups {
             }
         }
 
-        // make sure got enough TTC
-        require(msg.value >= _amount.mul(_price).div(10**(decimals-orderDecimals))); // TTC value
         // orderID auto increase
         orderID += 1;
         // create order
