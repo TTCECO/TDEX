@@ -10,8 +10,9 @@ contract TDEX is PermissionGroups {
     TST20 public MyToken;
     struct Order {
         address user;
-        uint amount;
+        uint amount;                                    // (wei)
         uint price;                                     // (wei/10**orderDecimals)
+        uint withhold;                                  // withhold tx fee for buy order only (wei)
     }
     uint constant public decimals = 18;
     uint constant public orderDecimals = 15;            // CUSD-17 CCNY-16 CKRW-14 ACN-14 CLAY-14
@@ -95,8 +96,10 @@ contract TDEX is PermissionGroups {
     /* add buy order, price (wei/ttc) */
     function addBuyTokenOrder(uint _price) public payable {
         require(msg.value >= minOrderValue);
-        // calculate _amount by msg.value / _price 
-        uint _amount = msg.value.mul(10**decimals).div(_price);
+        // use taker fee as withhold, because taker fee >= maker fee
+        uint withhold = msg.value.mul(takerTxFeePerMillion).div(million);
+        // calculate _amount by (msg.value - withhold)/ _price
+        uint _amount = msg.value.sub(withhold).mul(10**decimals).div(_price);
         
         _price = _price.div(10**orderDecimals);
         if (lastExecutionPrice != 0) {
@@ -112,7 +115,8 @@ contract TDEX is PermissionGroups {
         allBuyOrder[orderID] = Order({
           user:msg.sender,
           amount:_amount,
-          price:_price
+          price:_price,
+          withhold: withhold
         });
 
         buyTokenOrderMap[_price].push(orderID);
@@ -143,7 +147,8 @@ contract TDEX is PermissionGroups {
         allSellOrder[orderID] = Order({
           user:msg.sender,
           amount:_amount,
-          price:_price
+          price:_price,
+          withhold: 0
         });
 
         sellTokenOrderMap[_price].push(orderID);
