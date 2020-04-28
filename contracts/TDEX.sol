@@ -42,7 +42,7 @@ contract TDEX is PermissionGroups {
 
     address public adminWithdrawAddress;
 
-    event TE(uint t, address indexed addr, uint orderID, uint index, uint amount, uint price);
+    event TE(uint t, address indexed addr, uint orderID, uint index, uint amount, uint price, bool isMaker);
     // user operation
     // 1 - addBuyTokenOrder
     // 2 - addSellTokenOrder
@@ -127,7 +127,7 @@ contract TDEX is PermissionGroups {
             maxBuyPrice = _price;
         }
         buyAmountByPrice[_price] = buyAmountByPrice[_price].add(_amount);
-        TE(1, msg.sender, orderID,buyTokenOrderMap[_price].length - 1, _amount, _price.mul(10**orderDecimals));
+        TE(1, msg.sender, orderID,buyTokenOrderMap[_price].length - 1, _amount, _price.mul(10**orderDecimals),false);
 
     }
 
@@ -159,7 +159,7 @@ contract TDEX is PermissionGroups {
             minSellPrice = _price;
         }
         sellAmountByPrice[_price] = sellAmountByPrice[_price].add(_amount);
-        TE(2, msg.sender, orderID,sellTokenOrderMap[_price].length - 1, _amount, _price.mul(10**orderDecimals));
+        TE(2, msg.sender, orderID,sellTokenOrderMap[_price].length - 1, _amount, _price.mul(10**orderDecimals),false);
     }
 
     /* orders can execute exist */
@@ -280,8 +280,8 @@ contract TDEX is PermissionGroups {
         uint exWithhold = calculateExWithhold(executeAmount,lastExecutionPrice,TokenReceiverFee,buyWithhold);
         refundBuyerExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice,exWithhold);
         
-        TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
-        TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
+        TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), TokenReceiverFee==makerTxFeePerMillion);
+        TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), TTCReceiverFee==makerTxFeePerMillion);
         // 
         collectTradeFee(executeAmount, lastExecutionPrice,TTCReceiverFee, buyWithhold, exWithhold);
         // clear empty data
@@ -296,7 +296,7 @@ contract TDEX is PermissionGroups {
         }
         if (tradeFee > 0){
             require(adminWithdrawAddress.send(tradeFee));
-            TE(8, adminWithdrawAddress, 0, 0, _amount, tradeFee.mul(10**decimals).div(_amount));
+            TE(8, adminWithdrawAddress, 0, 0, _amount, tradeFee.mul(10**decimals).div(_amount),false);
         }
     }
     
@@ -331,7 +331,7 @@ contract TDEX is PermissionGroups {
         }
         if (refund > 0) {
             require(_buyer.send(refund)); 
-            TE(7, _buyer,0,0, _amount, refund.mul(10**decimals).div(_amount));
+            TE(7, _buyer,0,0, _amount, refund.mul(10**decimals).div(_amount),false);
         }
     }
 
@@ -409,7 +409,7 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(buyPrice.mul(10**orderDecimals), true);
         delete allBuyOrder[_orderID];
 
-        TE(5, orderOwner ,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals));
+        TE(5, orderOwner ,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals),false);
         buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(buyAmount);
     }
 
@@ -436,7 +436,7 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
         delete allSellOrder[_orderID];
 
-        TE(6, orderOwner,_orderID, _index, sellAmount, sellPrice.mul(10**orderDecimals));
+        TE(6, orderOwner,_orderID, _index, sellAmount, sellPrice.mul(10**orderDecimals),false);
         sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(sellAmount);
     }
 
