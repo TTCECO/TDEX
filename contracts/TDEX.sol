@@ -260,13 +260,7 @@ contract TDEX is PermissionGroups {
             sellStartPos[sellPrice] += 1;
         } else if (buyAmount > sellAmount){
             executeAmount = sellAmount;
-            buyWithhold = executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(TokenReceiverFee).div(million);
-            if (buyWithhold < allBuyOrder[buyOrderID].withhold) {
-                allBuyOrder[buyOrderID].withhold = allBuyOrder[buyOrderID].withhold.sub(buyWithhold);
-            }else {
-                buyWithhold = allBuyOrder[buyOrderID].withhold;
-                allBuyOrder[buyOrderID].withhold = 0;
-            }
+            buyWithhold = popBuyWithhold(buyOrderID,executeAmount,lastExecutionPrice, TokenReceiverFee);
             allBuyOrder[buyOrderID].amount -= executeAmount;
             delete allSellOrder[sellOrderID];
             sellStartPos[sellPrice] += 1;
@@ -283,8 +277,8 @@ contract TDEX is PermissionGroups {
         MyToken.transfer(buyer, executeAmount);
         require(seller.send(executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(million.sub(TTCReceiverFee)).div(million)));
 
-        
-        refundBuyerExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice);
+        uint exWithhold = calculateExWithhold(executeAmount,lastExecutionPrice,TokenReceiverFee,buyWithhold);
+        refundBuyerExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice,exWithhold);
         
         TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
         TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
@@ -293,13 +287,31 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(buyPrice.mul(10**orderDecimals), true);
         dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
     }
+    
+    function popBuyWithhold(uint _buyOrderID,uint _amount,uint _lastPrice, uint _tokenReceiverFee) internal returns (uint) {
+        uint buyWithhold = _amount.mul(_lastPrice).div(10**(decimals-orderDecimals)).mul(_tokenReceiverFee).div(million);
+        if (buyWithhold > allBuyOrder[_buyOrderID].withhold) {
+            buyWithhold = allBuyOrder[_buyOrderID].withhold;
+        }
+        allBuyOrder[_buyOrderID].withhold = allBuyOrder[_buyOrderID].withhold.sub(buyWithhold);
+        return buyWithhold;
+    }
+
+    function calculateExWithhold(uint _amount, uint _lastPrice, uint _tokenReceiverFee, uint _withhold) internal pure returns (uint) {
+        uint exWithhold = 0;
+        uint buyTradeFee = _amount.mul(_lastPrice).div(10**(decimals-orderDecimals)).mul(_tokenReceiverFee).div(million);
+        if (buyTradeFee < _withhold) {
+            exWithhold = _withhold.sub(buyTradeFee);
+        }
+        
+        return exWithhold;
+    }
 
     // 
-    function refundBuyerExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice) internal {
-        
+    function refundBuyerExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice, uint _exWithhold) internal {
         
         if (_buyPrice > _lastPrice){
-            require(_buyer.send(_amount.mul(_buyPrice.sub(_lastPrice)).div(10**(decimals-orderDecimals)))); // use diffPrice
+            require(_buyer.send(_amount.mul(_buyPrice.sub(_lastPrice)).div(10**(decimals-orderDecimals)).add(_exWithhold))); // use diffPrice
             TE(7, _buyer,0,0, _amount, _buyPrice.sub(_lastPrice)); // use diffPrice
         }
     }
