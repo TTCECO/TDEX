@@ -253,7 +253,7 @@ contract('TDEX', function() {
         // transfer token from user4 to user2
         await tdex.executeOrder({from:executer}).then(function(info){
             //console.log(info.logs);
-            assert.equal(info.logs.length,2, "equal");
+            assert.equal(info.logs.length,2, "equal"); // no refund & no collect trade fee
 
             assert.equal(info.logs[0].event, "TE", "equal");
             assert.equal(info.logs[1].event, "TE", "equal");

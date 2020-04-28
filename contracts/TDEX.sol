@@ -282,10 +282,22 @@ contract TDEX is PermissionGroups {
         
         TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
         TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
-
+        // 
+        collectTradeFee(executeAmount, lastExecutionPrice,TTCReceiverFee, buyWithhold, exWithhold);
         // clear empty data
         dealEmptyPrice(buyPrice.mul(10**orderDecimals), true);
         dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
+    }
+    
+    function collectTradeFee(uint _amount,uint _lastPrice, uint _ttcReceiverFee, uint _withhold, uint _exWithhold) internal {
+        uint tradeFee = _amount.mul(_lastPrice).div(10**(decimals-orderDecimals)).mul(_ttcReceiverFee).div(million);
+        if (_withhold > 0 && _withhold > _exWithhold) {
+            tradeFee = tradeFee.add(_withhold).sub(_exWithhold);
+        }
+        if (tradeFee > 0){
+            require(adminWithdrawAddress.send(tradeFee));
+            TE(8, adminWithdrawAddress, 0, 0, _amount, tradeFee.mul(10**decimals).div(_amount));
+        }
     }
     
     function popBuyWithhold(uint _buyOrderID,uint _amount,uint _lastPrice, uint _tokenReceiverFee) internal returns (uint) {
