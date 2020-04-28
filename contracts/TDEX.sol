@@ -284,7 +284,7 @@ contract TDEX is PermissionGroups {
         require(seller.send(executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(million.sub(TTCReceiverFee)).div(million)));
 
         
-        doValueExchange(buyer,executeAmount,buyPrice.mul(10**orderDecimals),lastExecutionPrice.mul(10**orderDecimals));
+        refundBuyerExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice);
         
         TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
         TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals));
@@ -294,12 +294,13 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
     }
 
-    function doValueExchange(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice) internal {
+    // 
+    function refundBuyerExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice) internal {
+        
+        
         if (_buyPrice > _lastPrice){
-            
-            uint diffPrice = _buyPrice.sub(_lastPrice);
-            require(_buyer.send(_amount.mul(diffPrice).div(10**decimals)));
-            TE(7, _buyer,0,0, _amount, diffPrice);
+            require(_buyer.send(_amount.mul(_buyPrice.sub(_lastPrice)).div(10**(decimals-orderDecimals)))); // use diffPrice
+            TE(7, _buyer,0,0, _amount, _buyPrice.sub(_lastPrice)); // use diffPrice
         }
     }
 
@@ -462,4 +463,5 @@ contract TDEX is PermissionGroups {
         return 0;
     }
 }
+
 
