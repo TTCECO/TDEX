@@ -321,10 +321,17 @@ contract TDEX is PermissionGroups {
 
     // 
     function refundBuyerExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice, uint _exWithhold) internal {
-        
+        uint refund = 0;
         if (_buyPrice > _lastPrice){
-            require(_buyer.send(_amount.mul(_buyPrice.sub(_lastPrice)).div(10**(decimals-orderDecimals)).add(_exWithhold))); // use diffPrice
-            TE(7, _buyer,0,0, _amount, _buyPrice.sub(_lastPrice)); // use diffPrice
+            uint diffPrice = _buyPrice.sub(_lastPrice);
+            refund = _amount.mul(diffPrice).div(10**(decimals-orderDecimals));
+        }
+        if (_exWithhold > 0){
+            refund = refund.add(_exWithhold); 
+        }
+        if (refund > 0) {
+            require(_buyer.send(refund)); 
+            TE(7, _buyer,0,0, _amount, refund.mul(10**decimals).div(_amount));
         }
     }
 
