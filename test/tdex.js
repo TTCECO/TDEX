@@ -245,8 +245,8 @@ contract('TDEX', function() {
         min_sell_price = await tdex.minSellPrice.call();
         assert.equal(min_sell_price.toString(10), user[4].price.div(order_decimal).toString(10), "equal");
 
-        maker_tx_fee_per_million = await tdex.makerTxFeePerMillion.call();
-        taker_tx_fee_per_million = await tdex.takerTxFeePerMillion.call();
+        maker_tx_fee_per_million = await tdex.makerFeeRate.call();
+        taker_tx_fee_per_million = await tdex.takerFeeRate.call();
         million = await tdex.million.call();
         user4_ttc_before = await web3.eth.getBalance(user[4].addr);
         user2_token_before = await token.balanceOf.call(user[2].addr);
@@ -319,8 +319,8 @@ contract('TDEX', function() {
         price4_orders = await tdex.getOrderPriceDetails.call(10, 0, false);
         
 
-        maker_tx_fee_per_million = await tdex.makerTxFeePerMillion.call();
-        taker_tx_fee_per_million = await tdex.takerTxFeePerMillion.call();
+        maker_tx_fee_per_million = await tdex.makerFeeRate.call();
+        taker_tx_fee_per_million = await tdex.takerFeeRate.call();
         million = await tdex.million.call();
         user4_ttc_before = await web3.eth.getBalance(user[4].addr);
         user1_token_before = await token.balanceOf.call(user[1].addr);
@@ -436,8 +436,8 @@ contract('TDEX', function() {
         //console.log("before trade last_execute_price", last_execute_price);
 
 
-        maker_tx_fee_per_million = await tdex.makerTxFeePerMillion.call();
-        taker_tx_fee_per_million = await tdex.takerTxFeePerMillion.call();
+        maker_tx_fee_per_million = await tdex.makerFeeRate.call();
+        taker_tx_fee_per_million = await tdex.takerFeeRate.call();
         million = await tdex.million.call();
         user3_ttc_before = await web3.eth.getBalance(user[3].addr);
         user6_ttc_before = await web3.eth.getBalance(user[6].addr);
