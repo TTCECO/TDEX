@@ -73,6 +73,7 @@ contract TDEX is PermissionGroups {
         MyToken.transfer(adminWithdrawAddress, MyToken.balanceOf(this));
     }
 
+    /* set max price range */
     function setMaxPriceRange(uint _value) public onlyOperator {
         maxPriceRange = _value;
     }
@@ -170,6 +171,7 @@ contract TDEX is PermissionGroups {
         }
     }
 
+    /* query first sell order ID on min sell price, return 0 if order ID can not be found */
     function querySellOrderID() internal returns (uint){
         uint minSellIndex = sellStartPos[minSellPrice];
         uint sellOrderID = 0;
@@ -188,6 +190,7 @@ contract TDEX is PermissionGroups {
         return sellOrderID;
     }
 
+    /* query first buy order ID on max buy price, return 0 if order ID can not be found */
     function queryBuyOrderID() internal returns (uint) {
         uint maxBuyIndex = buyStartPos[maxBuyPrice];
         uint buyOrderID = 0;
@@ -291,6 +294,7 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
     }
 
+    /* collect trade fee to adminWithdrawAddress */
     function collectTradeFee(uint _amount,uint _lastPrice, uint _ttcReceiverFeeRate, uint _withhold, uint _exWithhold) internal {
         uint tradeFee = _amount.mul(_lastPrice).div(10**(decimals-orderDecimals)).mul(_ttcReceiverFeeRate).div(million);
         if (_withhold > 0 && _withhold > _exWithhold) {
@@ -302,6 +306,7 @@ contract TDEX is PermissionGroups {
         }
     }
 
+    /* return the withhold for this tx and update the withhold of order */
     function popBuyWithhold(uint _buyOrderID,uint _amount,uint _lastPrice, uint _tokenReceiverFeeRate) internal returns (uint) {
         uint buyWithhold = _amount.mul(_lastPrice).div(10**(decimals-orderDecimals)).mul(_tokenReceiverFeeRate).div(million);
         if (buyWithhold > allBuyOrder[_buyOrderID].withhold) {
@@ -311,6 +316,7 @@ contract TDEX is PermissionGroups {
         return buyWithhold;
     }
 
+    /* return the exwithhold value of this tx, when the buy order execute as taker at first , and as maker full fill order, then ... */
     function calculateExWithhold(uint _amount, uint _lastPrice, uint _tokenReceiverFeeRate, uint _withhold) internal pure returns (uint) {
         uint exWithhold = 0;
         uint buyTradeFee = _amount.mul(_lastPrice).div(10**(decimals-orderDecimals)).mul(_tokenReceiverFeeRate).div(million);
@@ -321,7 +327,7 @@ contract TDEX is PermissionGroups {
         return exWithhold;
     }
 
-    //
+    /* refund ttc to buyer, (diff price)*amount + exwithhold */
     function refundBuyerExtraTTC(address _buyer, uint _amount, uint _buyPrice, uint _lastPrice, uint _exWithhold) internal {
         uint refund = 0;
         if (_buyPrice > _lastPrice){
@@ -337,6 +343,7 @@ contract TDEX is PermissionGroups {
         }
     }
 
+    /* deal empty price */
     function dealEmptyPrice(uint _price, bool _isBuyOrder ) public {
         _price = _price.div(10**orderDecimals);
         if (_isBuyOrder) {
@@ -377,6 +384,7 @@ contract TDEX is PermissionGroups {
         }
     }
 
+    /* admin cancel buy/sell order */
     function adminCancelOrder(bool _buy, uint _orderID, uint _index) public onlyAdmin{
         if (_buy == true)  {
             cancelBuy(_orderID, _index, true);
@@ -385,11 +393,13 @@ contract TDEX is PermissionGroups {
         }
     }
 
+    /* user cancel self buy order */
     function cancelBuyOrder(uint _orderID, uint _index) public {
         require(allBuyOrder[_orderID].user == msg.sender);
         cancelBuy(_orderID, _index, false);
     }
 
+    /* cancel buy order */
     function cancelBuy(uint _orderID, uint _index, bool _admin) internal {
         address orderOwner = allBuyOrder[_orderID].user;
         uint buyPrice = allBuyOrder[_orderID].price;
@@ -415,11 +425,13 @@ contract TDEX is PermissionGroups {
         buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(buyAmount);
     }
 
-
+    /* user cancel self sell order */
     function cancelSellOrder(uint _orderID, uint _index) public {
         require(allSellOrder[_orderID].user == msg.sender);
         cancelSell( _orderID, _index, false);
     }
+
+    /* cancel sell order */
     function cancelSell(uint _orderID, uint _index, bool _admin) internal {
         address orderOwner = allSellOrder[_orderID].user;
         uint sellPrice = allSellOrder[_orderID].price;
@@ -442,14 +454,16 @@ contract TDEX is PermissionGroups {
         sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(sellAmount);
     }
 
-    function getOrderDetails(uint _orderID, bool _isBuyOrder) public view returns(address,uint,uint){
+    /* get detail of order */
+    function getOrderDetails(uint _orderID, bool _isBuyOrder) public view returns(address,uint,uint,uint){
         if (_isBuyOrder){
-            return (allBuyOrder[_orderID].user,allBuyOrder[_orderID].amount,allBuyOrder[_orderID].price.mul(10**orderDecimals));
+            return (allBuyOrder[_orderID].user,allBuyOrder[_orderID].amount,allBuyOrder[_orderID].price.mul(10**orderDecimals),allBuyOrder[_orderID].withhold);
         }else{
-            return (allSellOrder[_orderID].user,allSellOrder[_orderID].amount,allSellOrder[_orderID].price.mul(10**orderDecimals));
+            return (allSellOrder[_orderID].user,allSellOrder[_orderID].amount,allSellOrder[_orderID].price.mul(10**orderDecimals),allSellOrder[_orderID].withhold);
         }
     }
 
+    /* get order index by price, return 0 if order ID can not be found */
     function getOrderPriceDetails(uint _price, uint _index, bool _isBuyOrder) public view returns(uint) {
         _price = _price.div(10**orderDecimals);
         if (_isBuyOrder ){
@@ -467,6 +481,7 @@ contract TDEX is PermissionGroups {
         }
     }
 
+    /* get order index by price and order id */
     function getOrderIndex(uint _price, bool _isBuyOrder, uint _targetOrderID, uint _start, uint _len) public view returns(uint){
         _price = _price.div(10**orderDecimals);
         if (_isBuyOrder){
@@ -486,6 +501,7 @@ contract TDEX is PermissionGroups {
         require(false);
     }
 
+    /* get order length by price and order type */
     function getOrderLengthByPrice(uint _price, bool _isBuyOrder) public view returns(uint) {
         _price = _price.div(10**orderDecimals);
         if (_isBuyOrder){
