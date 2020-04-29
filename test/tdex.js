@@ -13,6 +13,10 @@ contract('TDEX', function() {
 
     var decimal = new web3.BigNumber('1000000000000000000');  // 10**18
     var order_decimal = new web3.BigNumber('1000000000000000'); // 10**15
+    var million = new web3.BigNumber('1000000'); //10**6
+
+    var makerFeeRate = 1000;
+    var takerFeeRate = 3000;
 
     var users_init_data = [{"type":true,"num":200,"price":0.01},  // true is buy, false is sell
                 {"type":true,"num":200,"price":0.011},
@@ -97,9 +101,23 @@ contract('TDEX', function() {
         await tdex.addOperator(operator,{from:owner});
     });
 
+    it("set maker & taker fee rate for tdex",  async () =>  {
+        const tdex = await TDEX.deployed();
+        // set taker fee rate
+        await tdex.setTakerFeeRate(takerFeeRate, {from:operator});
+        rate = await tdex.takerFeeRate.call();
+        assert.equal(rate, takerFeeRate, "equal");
+        // set maker fee rate
+        await tdex.setMakerFeeRate(makerFeeRate, {from:operator});
+        rate = await tdex.makerFeeRate.call();
+        assert.equal(rate, makerFeeRate, "equal");
+
+    });
+
     it("user1 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder( user[1].price,{from:user[1].addr, to:tdex.address, value:user[1].ttc_num}).then(function(info){
+        value = user[1].ttc_num.mul(million.add(takerFeeRate)).div(million);
+        await tdex.addBuyTokenOrder(user[1].price,{from:user[1].addr, to:tdex.address, value:value}).then(function(info){
             assert.equal(info.logs[0].event, "TE", "equal");
             assert.equal(info.logs[0].args.t, 1, "equal");
             assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
@@ -137,7 +155,8 @@ contract('TDEX', function() {
 
     it("user2 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder(user[2].price,{from:user[2].addr, to:tdex.address, value:user[2].ttc_num});
+        value = user[2].ttc_num.mul(million.add(takerFeeRate)).div(million);
+        await tdex.addBuyTokenOrder(user[2].price,{from:user[2].addr, to:tdex.address, value:value});
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price, user[2].price/order_decimal, "equal");
@@ -231,7 +250,8 @@ contract('TDEX', function() {
 
     it("user5 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder(user[5].price,{from:user[5].addr, to:tdex.address, value:user[5].ttc_num});
+        value = user[5].ttc_num.mul(million.add(takerFeeRate)).div(million);
+        await tdex.addBuyTokenOrder(user[5].price,{from:user[5].addr, to:tdex.address, value:value});
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price.toString(10), user[2].price.div(order_decimal).toString(10), "equal");
@@ -273,7 +293,8 @@ contract('TDEX', function() {
         // transfer token from user4 to user2
         await tdex.executeOrder({from:executer}).then(function(info){
             //console.log(info.logs);
-            assert.equal(info.logs.length,2, "equal"); // no refund & no collect trade fee
+            
+            assert.equal(info.logs.length<=4,true, "equal"); // no refund & no collect trade fee
 
             assert.equal(info.logs[0].event, "TE", "equal");
             assert.equal(info.logs[1].event, "TE", "equal");
@@ -311,9 +332,11 @@ contract('TDEX', function() {
 
         last_execute_price = await tdex.lastExecutionPrice.call();
 
-        assert.equal(user[2].num.mul(million.sub(maker_tx_fee_per_million)).div(million).toString(10),
+        
+        assert.equal(user[2].num.toString(10),
             user2_token_after.sub(user2_token_before).toString(10),
             "equal");
+        
         assert.equal(user[2].num.mul(last_execute_price).mul(million.sub(taker_tx_fee_per_million)).div(million).div(decimal).toString(10) ,
             user4_ttc_after.sub(user4_ttc_before).div(order_decimal).toString(10),"equal");
 
@@ -362,7 +385,7 @@ contract('TDEX', function() {
 
         last_execute_price = await tdex.lastExecutionPrice.call();
 
-        assert.equal(user[4].num.sub(user[2].num).mul(million.sub(maker_tx_fee_per_million)).div(million).toString(10),
+        assert.equal(user[4].num.sub(user[2].num).toString(10),
             user1_token_after.sub(user1_token_before).toString(10),"equal");
 
         assert.equal(user[4].num.sub(user[2].num).mul(last_execute_price).mul(million.sub(taker_tx_fee_per_million)).div(million).div(decimal).toString(10),
@@ -436,7 +459,8 @@ contract('TDEX', function() {
 
     it("user6 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder( user[6].price,{from:user[6].addr, to:tdex.address, value:user[6].ttc_num});
+        value =user[6].ttc_num.mul(million.add(takerFeeRate)).div(million)
+        await tdex.addBuyTokenOrder( user[6].price,{from:user[6].addr, to:tdex.address, value:value});
 
         max_buy_price = await tdex.maxBuyPrice.call();
         assert.equal(max_buy_price.toString(10), user[6].price.div(order_decimal).toString(10), "equal");
@@ -451,6 +475,7 @@ contract('TDEX', function() {
 
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
+        var refund = 0;
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("before trade last_execute_price", last_execute_price);
@@ -463,7 +488,18 @@ contract('TDEX', function() {
         user6_ttc_before = await web3.eth.getBalance(user[6].addr);
         user3_token_before = await token.balanceOf.call(user[3].addr);
         user6_token_before = await token.balanceOf.call(user[6].addr);
-        await tdex.executeOrder({from:executer});
+
+        await tdex.executeOrder({from:executer}).then(function(info){
+            //console.log(info.logs);
+            assert.equal(info.logs.length <= 4, true, "equal"); // no refund & no collect trade fee
+            assert.equal(info.logs[2].event, "TE", "equal");
+            assert.equal(info.logs[2].args.t, 7, "equal");
+            assert.equal(info.logs[2].args.addr, user[6].addr, "equal");
+            refund = info.logs[2].args.amount.mul(info.logs[2].args.price);
+            assert.equal(info.logs[0].args.sign, false, "equal");
+
+        });
+
         user3_ttc_after = await web3.eth.getBalance(user[3].addr);
         user6_ttc_after = await web3.eth.getBalance(user[6].addr);
         user3_token_after = await token.balanceOf.call(user[3].addr);
@@ -476,12 +512,12 @@ contract('TDEX', function() {
 
         last_execute_price = await tdex.lastExecutionPrice.call();
         //console.log("after trade last_execute_price", last_execute_price);
-        assert.equal(
-            user[6].num.mul(million.sub(taker_tx_fee_per_million)).toString(10),
-            user6_token_after.sub(user6_token_before).mul(million).toString(10),"equal");
+        assert.equal(user[6].num.toString(10),user6_token_after.sub(user6_token_before).toString(10),"equal");
+
         assert.equal(user[6].num.mul(last_execute_price).mul(million.sub(maker_tx_fee_per_million)).mul(order_decimal).toString(10),
             user3_ttc_after.sub(user3_ttc_before).mul(million).mul(decimal).toString(10) ,"equal");
-        assert.equal(user[6].num.mul(user[6].price.sub(last_execute_price.mul(order_decimal))).toString(10),
+
+        assert.equal(refund.toString(10),
             user6_ttc_after.sub(user6_ttc_before).mul(decimal).toString(10) ,"equal");
 
     });
@@ -508,7 +544,8 @@ contract('TDEX', function() {
         }
 
         // user6 buy order_id(19)
-        await tdex.addBuyTokenOrder( user[6].price,{from:user[6].addr, to:tdex.address, value:user[6].ttc_num});
+        value = user[6].ttc_num.mul(million.add(takerFeeRate)).div(million);
+        await tdex.addBuyTokenOrder( user[6].price,{from:user[6].addr, to:tdex.address, value:value});
         
         await tdex.executeOrder({from:executer});
 
@@ -617,11 +654,11 @@ contract('TDEX', function() {
         // add buy order fail
         beyond_price = order_decimal.mul(last_execute_price).add(order_decimal.mul(max_price_range));
         //console.log("beyond_price",beyond_price.toString());
-        beyond_value = beyond_price.mul(ttc_num);
+        beyond_value = beyond_price.mul(ttc_num).mul(million.add(takerFeeRate)).div(million);
         //console.log("beyong_value",beyond_value.toString());
 
         ok_price = beyond_price.sub(order_decimal);
-        ok_value = ok_price.mul(ttc_num);
+        ok_value = ok_price.mul(ttc_num).mul(million.add(takerFeeRate)).div(million);
         //console.log("ok_price",ok_price.toString());
         var gotErr = false;
         await tdex.addBuyTokenOrder(beyond_price,{from:owner, to:tdex.address, value:beyond_value}).catch(function(error) {
@@ -644,7 +681,8 @@ contract('TDEX', function() {
 
     it("re-add buy order to tdex && cancel order by admin",  async () =>  {
         const tdex = await TDEX.deployed();
-        await tdex.addBuyTokenOrder( user[1].price,{from:user[1].addr, to:tdex.address, value:user[1].ttc_num}).then(function(info){
+        value = user[1].ttc_num.mul(million.add(takerFeeRate)).div(million);
+        await tdex.addBuyTokenOrder( user[1].price,{from:user[1].addr, to:tdex.address, value:value}).then(function(info){
             assert.equal(info.logs[0].event, "TE", "equal");
             assert.equal(info.logs[0].args.t, 1, "equal");
             assert.equal(info.logs[0].args.addr, user[1].addr, "equal");

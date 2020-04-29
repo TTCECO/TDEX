@@ -101,7 +101,7 @@ contract TDEX is PermissionGroups {
     function addBuyTokenOrder(uint _price) public payable {
         require(msg.value >= minOrderValue);
         // use taker fee as withhold, because taker fee >= maker fee
-        uint withhold = msg.value.mul(takerFeeRate).div(million);
+        uint withhold = msg.value.mul(takerFeeRate).div(million.add(takerFeeRate));
         // calculate _amount by (msg.value - withhold)/ _price
         uint _amount = msg.value.sub(withhold).mul(10**decimals).div(_price);
         _price = _price.div(10**orderDecimals);
@@ -279,9 +279,6 @@ contract TDEX is PermissionGroups {
         // transfer
         MyToken.transfer(buyer, executeAmount);
         require(seller.send(executeAmount.mul(lastExecutionPrice).div(10**(decimals-orderDecimals)).mul(million.sub(ttcReceiverFeeRate)).div(million)));
-
-        uint exWithhold = calculateExWithhold(executeAmount,lastExecutionPrice,tokenReceiverFeeRate,buyWithhold);
-        refundBuyerExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice,exWithhold);
         if (buyOrderID < sellOrderID) {
             TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), true);
             TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), false);
@@ -289,6 +286,10 @@ contract TDEX is PermissionGroups {
             TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), false);
             TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), true);
         }
+        
+        uint exWithhold = calculateExWithhold(executeAmount,lastExecutionPrice,tokenReceiverFeeRate,buyWithhold);
+        refundBuyerExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice,exWithhold);
+
         //
         collectTradeFee(executeAmount, lastExecutionPrice,ttcReceiverFeeRate, buyWithhold, exWithhold);
         // clear empty data
