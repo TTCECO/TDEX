@@ -95,6 +95,7 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
             assert.equal(info.logs[0].args.amount.toString(10), user[1].num.toString(10), "equal");
             assert.equal(info.logs[0].args.price.toString(10), user[1].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, false, "equal");
 
             user[1].index = info.logs[0].args.index;
             user[1].order_id = info.logs[0].args.orderID;
@@ -177,6 +178,7 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.addr, user[3].addr, "equal");
             assert.equal(info.logs[0].args.amount.toString(10), user[3].num.toString(10), "equal");
             assert.equal(info.logs[0].args.price.toString(10), user[3].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, false , "equal");
 
             user[3].index = info.logs[0].args.index;
             user[3].order_id = info.logs[0].args.orderID;
@@ -627,6 +629,7 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.addr, owner, "equal");
             assert.equal(info.logs[0].args.amount.toString(10), num.toString(10), "equal");
             assert.equal(info.logs[0].args.price.toString(10), ok_price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, false , "equal");
         });
     });
 
@@ -639,6 +642,7 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
             assert.equal(info.logs[0].args.amount.toString(10), user[1].num.toString(10), "equal");
             assert.equal(info.logs[0].args.price.toString(10), user[1].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, false , "equal");
 
             user[1].index = info.logs[0].args.index;
             user[1].order_id = info.logs[0].args.orderID;
@@ -651,6 +655,7 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
             assert.equal(info.logs[0].args.amount.toString(10), user[1].num.toString(10), "equal");
             assert.equal(info.logs[0].args.price.toString(10), user[1].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, true , "equal");
 
         });
 
@@ -666,6 +671,7 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.addr, user[3].addr, "equal");
             assert.equal(info.logs[0].args.amount.toString(10), user[3].num.toString(10), "equal");
             assert.equal(info.logs[0].args.price.toString(10), user[3].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, false , "equal");
 
             user[3].index = info.logs[0].args.index;
             user[3].order_id = info.logs[0].args.orderID;
@@ -678,7 +684,7 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.addr, user[3].addr, "equal");
             assert.equal(info.logs[0].args.amount.toString(10), user[3].num.toString(10), "equal");
             assert.equal(info.logs[0].args.price.toString(10), user[3].price.toString(10) , "equal");
-
+            assert.equal(info.logs[0].args.sign, true , "equal");
         });
 
     });
