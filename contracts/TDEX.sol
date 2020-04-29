@@ -65,11 +65,13 @@ contract TDEX is PermissionGroups {
 
     /* withdraw TTC by admin */
     function withdrawTTC() public onlyAdmin {
+        require(adminWithdrawAddress != address(0));
         require(adminWithdrawAddress.send(this.balance));
     }
 
     /* withdraw Token by admin */
     function withdrawToken() public onlyAdmin{
+        require(adminWithdrawAddress != address(0));
         MyToken.transfer(adminWithdrawAddress, MyToken.balanceOf(this));
     }
 
@@ -296,6 +298,8 @@ contract TDEX is PermissionGroups {
 
     /* collect trade fee to adminWithdrawAddress */
     function collectTradeFee(uint _amount,uint _lastPrice, uint _ttcReceiverFeeRate, uint _withhold, uint _exWithhold) internal {
+        require(adminWithdrawAddress != address(0));
+
         uint tradeFee = _amount.mul(_lastPrice).div(10**(decimals-orderDecimals)).mul(_ttcReceiverFeeRate).div(million);
         if (_withhold > 0 && _withhold > _exWithhold) {
             tradeFee = tradeFee.add(_withhold).sub(_exWithhold);

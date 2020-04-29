@@ -34,6 +34,8 @@ contract('TDEX', function() {
 
     var executer = eth.accounts[7];
 
+    var adminWithdrawAddress = eth.accounts[9];
+
 	function getBalance(addr){
         return web3.fromWei(web3.eth.getBalance(addr), "ether");
 	}
@@ -69,12 +71,18 @@ contract('TDEX', function() {
         }
     });
 
-    it("add token for tdex",  async () =>  {
+    it("add token , adminWithdrawAddress and operator for tdex",  async () =>  {
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
+        // add token
         await tdex.initAddressSettings(2,token.address, {from:owner});
         token_address = await tdex.MyToken.call();
         assert.equal(token_address, token.address, "equal");
+        // add adminWithDrawAddress
+        await tdex.initAddressSettings(1,adminWithdrawAddress, {from:owner});
+        withdraw_address = await tdex.adminWithdrawAddress.call();
+        assert.equal(withdraw_address, adminWithdrawAddress, "equal");
+        // add operator
         await tdex.addOperator(owner,{from:owner});
     });
 
