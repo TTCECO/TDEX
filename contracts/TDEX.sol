@@ -42,14 +42,14 @@ contract TDEX is PermissionGroups {
 
     address public adminWithdrawAddress;
 
-    event TE(uint t, address indexed addr, uint orderID, uint index, uint amount, uint price, bool isMaker);
+    event TE(uint t, address indexed addr, uint orderID, uint index, uint amount, uint price, bool sign);
     // user operation
     // 1 - addBuyTokenOrder
     // 2 - addSellTokenOrder
-    // 3 - exeBuyOrder
-    // 4 - exeSellOrder
-    // 5 - cancelBuyOrder
-    // 6 - cancelSellOrder
+    // 3 - exeBuyOrder      (sign == true if maker)
+    // 4 - exeSellOrder     (sign == true if maker)
+    // 5 - cancelBuyOrder   (sign == true if cancel by admin)
+    // 6 - cancelSellOrder  (sign == true if cancel by admin)
     // 7 - refundBuyerExtraTTC
     // 8 - adminCollectTxFee
 
@@ -279,9 +279,13 @@ contract TDEX is PermissionGroups {
 
         uint exWithhold = calculateExWithhold(executeAmount,lastExecutionPrice,TokenReceiverFee,buyWithhold);
         refundBuyerExtraTTC(buyer,executeAmount,buyPrice,lastExecutionPrice,exWithhold);
-        
-        TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), TokenReceiverFee==makerTxFeePerMillion);
-        TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), TTCReceiverFee==makerTxFeePerMillion);
+        if (buyOrderID < sellOrderID) {
+            TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), true);
+            TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), false);
+        }else {
+            TE(3, buyer,buyOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), false);
+            TE(4, seller,sellOrderID, 0, executeAmount, lastExecutionPrice.mul(10**orderDecimals), true);
+        }
         // 
         collectTradeFee(executeAmount, lastExecutionPrice,TTCReceiverFee, buyWithhold, exWithhold);
         // clear empty data
@@ -377,18 +381,18 @@ contract TDEX is PermissionGroups {
 
     function adminCancelOrder(bool _buy, uint _orderID, uint _index) public onlyAdmin{
         if (_buy == true)  {
-            cancelBuy(_orderID,_index);
+            cancelBuy(_orderID, _index, true);
         }else {
-            cancelSell(_orderID, _index);
+            cancelSell(_orderID, _index, true);
         }
     }
 
     function cancelBuyOrder(uint _orderID, uint _index) public {
         require(allBuyOrder[_orderID].user == msg.sender);
-        cancelBuy(_orderID,_index);
+        cancelBuy(_orderID, _index, false);
     }
 
-    function cancelBuy(uint _orderID, uint _index) internal {
+    function cancelBuy(uint _orderID, uint _index, bool _admin) internal {
         address orderOwner = allBuyOrder[_orderID].user;
         uint buyPrice = allBuyOrder[_orderID].price;
         uint buyAmount = allBuyOrder[_orderID].amount;
@@ -409,16 +413,16 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(buyPrice.mul(10**orderDecimals), true);
         delete allBuyOrder[_orderID];
 
-        TE(5, orderOwner ,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals),false);
+        TE(5, orderOwner ,_orderID, _index, buyAmount, buyPrice.mul(10**orderDecimals),_admin);
         buyAmountByPrice[buyPrice] = buyAmountByPrice[buyPrice].sub(buyAmount);
     }
 
 
     function cancelSellOrder(uint _orderID, uint _index) public {
         require(allSellOrder[_orderID].user == msg.sender);
-        cancelSell( _orderID, _index);
+        cancelSell( _orderID, _index, false);
     }
-    function cancelSell(uint _orderID, uint _index) internal {
+    function cancelSell(uint _orderID, uint _index, bool _admin) internal {
         address orderOwner = allSellOrder[_orderID].user;
         uint sellPrice = allSellOrder[_orderID].price;
         uint sellAmount = allSellOrder[_orderID].amount;
@@ -436,7 +440,7 @@ contract TDEX is PermissionGroups {
         dealEmptyPrice(sellPrice.mul(10**orderDecimals), false);
         delete allSellOrder[_orderID];
 
-        TE(6, orderOwner,_orderID, _index, sellAmount, sellPrice.mul(10**orderDecimals),false);
+        TE(6, orderOwner,_orderID, _index, sellAmount, sellPrice.mul(10**orderDecimals), _admin);
         sellAmountByPrice[sellPrice] = sellAmountByPrice[sellPrice].sub(sellAmount);
     }
 
@@ -494,5 +498,4 @@ contract TDEX is PermissionGroups {
         return 0;
     }
 }
-
 

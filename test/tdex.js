@@ -269,6 +269,9 @@ contract('TDEX', function() {
             assert.equal(info.logs[0].args.price.toString(10),
                 info.logs[1].args.price.toString(10) , "equal");
 
+            assert.equal(info.logs[0].args.sign, true, "equal");
+            assert.equal(info.logs[1].args.sign, false, "equal");
+
         });
         user4_ttc_after = await web3.eth.getBalance(user[4].addr);
         user2_token_after = await token.balanceOf.call(user[2].addr);
