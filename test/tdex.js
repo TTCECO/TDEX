@@ -33,7 +33,7 @@ contract('TDEX', function() {
     }           
 
     var executer = eth.accounts[7];
-
+    var operator = eth.accounts[8];
     var adminWithdrawAddress = eth.accounts[9];
 
 	function getBalance(addr){
@@ -42,10 +42,21 @@ contract('TDEX', function() {
 
 	function printBalance() {
         var balance = web3.eth.getBalance(owner);
-        console.log("Owner balance", web3.fromWei(balance, "ether").toString(), " ETHER");
+        console.log("Owner    balance:", web3.fromWei(balance, "ether").toString(), "TTC");
 
-        balance = web3.eth.getBalance(user[1].addr);
-        console.log("user[1] balance", web3.fromWei(balance, "ether").toString(), " ETHER");
+        for (i=1;i<10;i++){
+            balance = web3.eth.getBalance(user[1].addr);
+            if (i < 7){
+                console.log("user",i,"  balance:", web3.fromWei(balance, "ether").toString(), "TTC");
+            }else if (i==7){
+                console.log("executor balance:", web3.fromWei(balance, "ether").toString(), "TTC");
+            }else if (i==8){
+                console.log("operator balance:", web3.fromWei(balance, "ether").toString(), "TTC");
+            }else if (i==9){
+                console.log("withdraw balance:", web3.fromWei(balance, "ether").toString(), "TTC");
+
+            }
+        }
   	
     }
 
@@ -71,7 +82,7 @@ contract('TDEX', function() {
         }
     });
 
-    it("add token , adminWithdrawAddress and operator for tdex",  async () =>  {
+    it("add token, adminWithdrawAddress and operator for tdex",  async () =>  {
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
         // add token
@@ -83,9 +94,8 @@ contract('TDEX', function() {
         withdraw_address = await tdex.adminWithdrawAddress.call();
         assert.equal(withdraw_address, adminWithdrawAddress, "equal");
         // add operator
-        await tdex.addOperator(owner,{from:owner});
+        await tdex.addOperator(operator,{from:owner});
     });
-
 
     it("user1 buy token",  async () =>  {
         const tdex = await TDEX.deployed();
@@ -114,7 +124,7 @@ contract('TDEX', function() {
 
     it("try add buy order less than min token amount ",async () => {    
         const tdex = await TDEX.deployed();
-        tdex.setMinOrderValue(user[2].ttc_num * 2, {from:owner});
+        tdex.setMinOrderValue(user[2].ttc_num * 2, {from:operator});
         var gotErr = false;
         await tdex.addBuyTokenOrder( user[2].price,{from:user[2].addr, to:tdex.address, value:user[2].ttc_num}).catch(function(error) {
             gotErr = true;
@@ -122,7 +132,7 @@ contract('TDEX', function() {
             
         });
         assert.equal(gotErr, true, "equal");
-        await tdex.setMinOrderValue(2*10**18, {from:owner});
+        await tdex.setMinOrderValue(2*10**18, {from:operator});
     });
 
     it("user2 buy token",  async () =>  {
@@ -535,9 +545,8 @@ contract('TDEX', function() {
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
 
-        await tdex.initAddressSettings(1,owner,{from:owner});
-        owner_ttc_before = await web3.eth.getBalance(owner);
-        owner_token_before = await token.balanceOf.call(owner);
+        ttc_before = await web3.eth.getBalance(adminWithdrawAddress);
+        token_before = await token.balanceOf.call(adminWithdrawAddress);
         contract_ttc_before = await web3.eth.getBalance(tdex.address);
         contract_token_before = await token.balanceOf.call(tdex.address);
         gas_used = 0;
@@ -545,24 +554,24 @@ contract('TDEX', function() {
         res = await tdex.withdrawTTC({from:owner,gasPrice:gas_price});
         gas_used = res.receipt.gasUsed;
         
-        owner_ttc_after = await web3.eth.getBalance(owner);
+        ttc_after = await web3.eth.getBalance(adminWithdrawAddress);
         contract_ttc_after = await web3.eth.getBalance(tdex.address);
         res = await tdex.withdrawToken({from:owner,gasPrice:gas_price});
 
         gas_v = gas_price.mul(gas_used);
 
-        owner_token_after = await token.balanceOf.call(owner);
+        token_after = await token.balanceOf.call(adminWithdrawAddress);
         contract_token_after = await token.balanceOf.call(tdex.address);
 
         assert.equal(contract_token_before.toNumber() > 0, true, "equal");
         assert.equal(contract_ttc_before.toNumber() > 0, true, "equal");
         assert.equal(contract_token_after.toNumber() == 0, true, "equal");
         assert.equal(contract_ttc_after.toNumber() == 0, true, "equal");
-        assert.equal(owner_token_before.add(contract_token_before).toString(10),
-                    owner_token_after.add(contract_token_after).toString(10),
+        assert.equal(token_before.add(contract_token_before).toString(10),
+                    token_after.add(contract_token_after).toString(10),
                     "equal");
-        assert.equal(owner_ttc_before.add(contract_ttc_before).toString(10),
-                    owner_ttc_after.add(contract_ttc_after).add(gas_v).toString(10),
+        assert.equal(ttc_before.add(contract_ttc_before).toString(10),
+                    ttc_after.add(contract_ttc_after).toString(10),
                     "equal");
     });
 
@@ -574,7 +583,7 @@ contract('TDEX', function() {
         //console.log("max_price_range" , max_price_range.toNumber())
         target_value = max_price_range.toNumber() -290 ;
         //console.log("target_value",target_value)
-        await tdex.setMaxPriceRange(target_value, {from:owner});
+        await tdex.setMaxPriceRange(target_value, {from:operator});
         max_price_range = await tdex.maxPriceRange.call();
         //console.log("max_price_range" , max_price_range.toNumber())
         assert.equal(max_price_range.toNumber(), target_value, "equal");
@@ -590,8 +599,7 @@ contract('TDEX', function() {
             assert(error.toString().includes('Error: VM Exception while processing transaction: revert'), error.toString())           
         });
         assert.equal(gotErr, true, "equal");
-        await tdex.addOperator(user[6].addr,{from:owner});
-        await tdex.setMaxPriceRange(max_price_range,{from:user[6].addr})
+        await tdex.setMaxPriceRange(max_price_range,{from:operator})
     });
 
 
