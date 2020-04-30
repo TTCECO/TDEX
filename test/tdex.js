@@ -44,6 +44,16 @@ contract('TDEX', function() {
         return web3.fromWei(web3.eth.getBalance(addr), "ether");
 	}
 
+    function printLogs(logs) {
+        for (i=0;i<logs.length ;i++){
+            console.log("TE","t",logs[i].args.t.toString(10),
+            "address",logs[i].args.addr ,
+            "orderID",logs[i].args.orderID.toString(10),
+            "index",logs[i].args.index.toString(10),
+            "amount",logs[i].args.amount.toString(10),"price",logs[i].args.price.toString(10), "sign",logs[i].args.sign );
+        }
+    }
+
 	function printBalance() {
         var balance = web3.eth.getBalance(owner);
         console.log("Owner    balance:", web3.fromWei(balance, "ether").toString(), "TTC");
@@ -578,40 +588,6 @@ contract('TDEX', function() {
     });
 
 
-    it("withdraw all from contract",  async () =>  {
-        const tdex = await TDEX.deployed();
-        const token = await TOKEN.deployed();
-
-        ttc_before = await web3.eth.getBalance(adminWithdrawAddress);
-        token_before = await token.balanceOf.call(adminWithdrawAddress);
-        contract_ttc_before = await web3.eth.getBalance(tdex.address);
-        contract_token_before = await token.balanceOf.call(tdex.address);
-        gas_used = 0;
-        gas_price = new web3.BigNumber(1000000);
-        res = await tdex.withdrawTTC({from:owner,gasPrice:gas_price});
-        gas_used = res.receipt.gasUsed;
-        
-        ttc_after = await web3.eth.getBalance(adminWithdrawAddress);
-        contract_ttc_after = await web3.eth.getBalance(tdex.address);
-        res = await tdex.withdrawToken({from:owner,gasPrice:gas_price});
-
-        gas_v = gas_price.mul(gas_used);
-
-        token_after = await token.balanceOf.call(adminWithdrawAddress);
-        contract_token_after = await token.balanceOf.call(tdex.address);
-
-        assert.equal(contract_token_before.toNumber() > 0, true, "equal");
-        assert.equal(contract_ttc_before.toNumber() > 0, true, "equal");
-        assert.equal(contract_token_after.toNumber() == 0, true, "equal");
-        assert.equal(contract_ttc_after.toNumber() == 0, true, "equal");
-        assert.equal(token_before.add(contract_token_before).toString(10),
-                    token_after.add(contract_token_after).toString(10),
-                    "equal");
-        assert.equal(ttc_before.add(contract_ttc_before).toString(10),
-                    ttc_after.add(contract_ttc_after).toString(10),
-                    "equal");
-    });
-
     it("reset maxPriceRange",  async () =>  {
         const tdex = await TDEX.deployed();
         const token = await TOKEN.deployed();
@@ -735,5 +711,169 @@ contract('TDEX', function() {
 
     });
 
+
+    it("complicated trade",  async () =>  {
+        // reset user data, user1 to user4
+        users_init_data = [{"type":false,"num":200,"price":0.011},  
+            {"type":true,"num":600,"price":0.012},
+            {"type":false,"num":300,"price":0.012},
+            {"type":false,"num":200,"price":0.01}];
+        user = {};            
+        for (k in users_init_data) {
+            var u = users_init_data[k];
+            k = parseInt(k) + 1;
+            user[k] = ({"addr":eth.accounts[k],
+                    "type":u.type,
+                    "num":decimal.mul(u.num),
+                    "price":decimal.mul(u.price).floor(),
+                    "ttc_num":decimal.mul(u.num).mul(u.price).floor(),
+            })
+        }    
+
+        const tdex = await TDEX.deployed();
+        const token = await TOKEN.deployed();
+        
+        // token transfer and approve 
+        for (i=1;i<5;i++) {
+            if (!user[i].type){
+                await token.transfer(user[i].addr,user[i].num*20, {from:owner});
+                await token.approve(tdex.address,0, {from:user[1].addr});
+                await token.approve(tdex.address,user[1].num*20, {from:user[1].addr});
+            }
+        }
+
+        await tdex.addSellTokenOrder(user[1].num, user[1].price,{from:user[1].addr}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 2, "equal");
+            assert.equal(info.logs[0].args.addr, user[1].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[1].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[1].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, false , "equal");
+
+            user[1].index = info.logs[0].args.index;
+            user[1].order_id = info.logs[0].args.orderID;
+        });
+
+        await tdex.executeOrder({from:executer}).then(function(info){
+            //printLogs(info.logs);
+
+            //assert.equal(info.logs.length <= 4, true, "equal"); // no refund & no collect trade fee
+            //assert.equal(info.logs[2].event, "TE", "equal");
+            //assert.equal(info.logs[2].args.t, 7, "equal");
+            //assert.equal(info.logs[2].args.addr, user[6].addr, "equal");
+            //refund = info.logs[2].args.amount.mul(info.logs[2].args.price);
+            //assert.equal(info.logs[0].args.sign, false, "equal");
+
+        });
+     
+        value =user[2].ttc_num.mul(million.add(takerFeeRate)).div(million)
+        await tdex.addBuyTokenOrder(user[2].price,{from:user[2].addr, to:tdex.address, value:value}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 1, "equal");
+            assert.equal(info.logs[0].args.addr, user[2].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[2].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[2].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, false , "equal");
+
+            user[2].index = info.logs[0].args.index;
+            user[2].order_id = info.logs[0].args.orderID;
+        });
+
+        await tdex.executeOrder({from:executer}).then(function(info){
+            //printLogs(info.logs);
+
+            //assert.equal(info.logs.length <= 4, true, "equal"); // no refund & no collect trade fee
+            //assert.equal(info.logs[2].event, "TE", "equal");
+            //assert.equal(info.logs[2].args.t, 7, "equal");
+            //assert.equal(info.logs[2].args.addr, user[6].addr, "equal");
+            //refund = info.logs[2].args.amount.mul(info.logs[2].args.price);
+            //assert.equal(info.logs[0].args.sign, false, "equal");
+
+        });
+               
+        await tdex.addSellTokenOrder(user[3].num, user[3].price,{from:user[3].addr}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 2, "equal");
+            assert.equal(info.logs[0].args.addr, user[3].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[3].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[3].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, false , "equal");
+
+            user[3].index = info.logs[0].args.index;
+            user[3].order_id = info.logs[0].args.orderID;
+        });
+       
+        await tdex.executeOrder({from:executer}).then(function(info){
+            //printLogs(info.logs);
+
+            //assert.equal(info.logs.length <= 4, true, "equal"); // no refund & no collect trade fee
+            //assert.equal(info.logs[2].event, "TE", "equal");
+            //assert.equal(info.logs[2].args.t, 7, "equal");
+            //assert.equal(info.logs[2].args.addr, user[6].addr, "equal");
+            //refund = info.logs[2].args.amount.mul(info.logs[2].args.price);
+            //assert.equal(info.logs[0].args.sign, false, "equal");
+
+        });
+               
+        await tdex.addSellTokenOrder(user[4].num, user[4].price,{from:user[4].addr}).then(function(info){
+            assert.equal(info.logs[0].event, "TE", "equal");
+            assert.equal(info.logs[0].args.t, 2, "equal");
+            assert.equal(info.logs[0].args.addr, user[4].addr, "equal");
+            assert.equal(info.logs[0].args.amount.toString(10), user[4].num.toString(10), "equal");
+            assert.equal(info.logs[0].args.price.toString(10), user[4].price.toString(10) , "equal");
+            assert.equal(info.logs[0].args.sign, false , "equal");
+
+            user[4].index = info.logs[0].args.index;
+            user[4].order_id = info.logs[0].args.orderID;
+        });
+
+        await tdex.executeOrder({from:executer}).then(function(info){
+            //printLogs(info.logs);
+
+            //assert.equal(info.logs.length <= 4, true, "equal"); // no refund & no collect trade fee
+            //assert.equal(info.logs[2].event, "TE", "equal");
+            //assert.equal(info.logs[2].args.t, 7, "equal");
+            //assert.equal(info.logs[2].args.addr, user[6].addr, "equal");
+            //refund = info.logs[2].args.amount.mul(info.logs[2].args.price);
+            //assert.equal(info.logs[0].args.sign, false, "equal");
+
+        });
+        
+
+    });
+    // the follow test case should be final test case 
+    it("withdraw all from contract",  async () =>  {
+        const tdex = await TDEX.deployed();
+        const token = await TOKEN.deployed();
+
+        ttc_before = await web3.eth.getBalance(adminWithdrawAddress);
+        token_before = await token.balanceOf.call(adminWithdrawAddress);
+        contract_ttc_before = await web3.eth.getBalance(tdex.address);
+        contract_token_before = await token.balanceOf.call(tdex.address);
+        gas_used = 0;
+        gas_price = new web3.BigNumber(1000000);
+        res = await tdex.withdrawTTC({from:owner,gasPrice:gas_price});
+        gas_used = res.receipt.gasUsed;
+        
+        ttc_after = await web3.eth.getBalance(adminWithdrawAddress);
+        contract_ttc_after = await web3.eth.getBalance(tdex.address);
+        res = await tdex.withdrawToken({from:owner,gasPrice:gas_price});
+
+        gas_v = gas_price.mul(gas_used);
+
+        token_after = await token.balanceOf.call(adminWithdrawAddress);
+        contract_token_after = await token.balanceOf.call(tdex.address);
+
+        assert.equal(contract_token_before.toNumber() > 0, true, "equal");
+        assert.equal(contract_ttc_before.toNumber() > 0, true, "equal");
+        assert.equal(contract_token_after.toNumber() == 0, true, "equal");
+        assert.equal(contract_ttc_after.toNumber() == 0, true, "equal");
+        assert.equal(token_before.add(contract_token_before).toString(10),
+                    token_after.add(contract_token_after).toString(10),
+                    "equal");
+        assert.equal(ttc_before.add(contract_ttc_before).toString(10),
+                    ttc_after.add(contract_ttc_after).toString(10),
+                    "equal");
+    });
 
 });
