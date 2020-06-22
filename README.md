@@ -11,6 +11,11 @@ TDEX is a Decentralized Exchange that facilitates trustless, low friction exchan
 
 TDEX is under development and subject to frequent changes, upgrades, and bug fixes. We appreciate your help in providing feedback and working around rough edges as we build towards a better product.
 
+## Developer Resources
+* [contracts](https://github.com/TTCECO/TTCECO/blob/master/contracts) - Smart contracts of TDEX. 
+* [migrations](https://github.com/TTCECO/TTCECO/blob/master/migrations) - Scripts to deploy the contracts. 
+* [test](https://github.com/TTCECO/TTCECO/blob/master/test) - All test case 
+
 ## Reporting Issues
 
 If you believe you have identified a bug in TDEX, please file an issue.
