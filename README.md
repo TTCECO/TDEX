@@ -22,4 +22,4 @@ If you believe you have identified a bug in TDEX, please file an issue.
 
 ## License
 
-TDEX is open source and distributed under the Apache License v2.0
+TDEX is open source and distributed under the [Apache License v2.0](https://github.com/TTCECO/TDEX/blob/master/LICENSE)
